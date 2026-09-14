@@ -25,7 +25,7 @@ export function renderAgentProfile(agent, runtime) {
   summary.append(el('span', 'ap-department', department.name), el('h3', '', agent.description));
   const badges = el('div', 'ap-badges');
   if (agent.launchTeam) badges.append(el('span', 'ap-tag', 'Core team'));
-  badges.append(el('span', 'ap-tag', agent.id === 'sam' && runtime?.enabled ? runtime.online ? 'Worker connected' : 'Worker offline' : runtime?.projectAgents?.includes(agent.id) ? runtime.projectOnline ? 'Project worker connected' : 'Project worker offline' : 'Profile ready · connection pending'));
+  badges.append(el('span', 'ap-tag', runtime?.chatAgents?.includes(agent.id) ? runtime.chatOnline ? 'Chat connected' : 'Chat worker offline' : agent.id === 'sam' && runtime?.enabled ? runtime.online ? 'Worker connected' : 'Worker offline' : runtime?.projectAgents?.includes(agent.id) ? runtime.projectOnline ? 'Project worker connected' : 'Project worker offline' : 'Profile ready · connection pending'));
   summary.append(badges); fragment.append(summary);
   fragment.append(el('h4', 'ap-heading', 'Responsibilities'), list(agent.responsibilities));
   fragment.append(el('h4', 'ap-heading', 'What you can expect'), list(agent.deliverables));

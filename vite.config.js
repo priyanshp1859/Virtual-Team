@@ -5,6 +5,8 @@ import { pathToFileURL } from 'node:url';
 export default defineConfig(({ mode }) => ({
   // Keep CSS configuration inside this repository, including isolated agent clones.
   css: { postcss: {} },
+  // Creating an agent's isolated clone must not reload the owner's open chat.
+  server: { watch: { ignored: ['**/.sam/**'] } },
   plugins: [{
     name: 'virtual-team-local-api',
     configureServer(server) {

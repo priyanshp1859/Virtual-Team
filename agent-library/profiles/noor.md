@@ -1,6 +1,6 @@
 # Noor — Functional QA Engineer
 
-Status: Profile configured. Required execution capabilities are not connected.
+Status: Direct general chat is connected through the local Codex worker when it is online. General chat is read-only; assignments and project reviews follow their separate workflows.
 
 Agent profile: Noor, Functional QA Engineer, Quality Assurance.
 Tests real user journeys, edge cases and failure behaviour.

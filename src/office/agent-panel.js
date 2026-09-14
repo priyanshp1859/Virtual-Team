@@ -2,6 +2,7 @@ import { AGENTS, DEPARTMENTS } from './config.js';
 import { WORKFLOW_STEPS, workflowSteps } from './workflow-config.js';
 import { STATUS_LABELS } from './cloud-store.js';
 import { renderAgentProfile } from './team-directory.js';
+import { chatDelivery } from './chat-status.js';
 import './agent-panel.css';
 import './runtime.css';
 
@@ -69,8 +70,9 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   const agent = () => AGENTS.find(item => item.id === agentId);
   const tasks = () => snapshot.tasks.filter(task => task.agentId === agentId).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const currentTask = () => snapshot.tasks.find(task => task.id === selectedTasks.get(agentId) && task.agentId === agentId) || null;
-  const connectedAgent = () => agentId === 'sam' && snapshot.runtime?.enabled;
-  const currentExecution = () => connectedAgent() ? currentTask()?.execution || (!currentTask() ? snapshot.runtime?.general : null) : null;
+  const connectedAgent = () => snapshot.runtime?.enabled && (currentTask() ? agentId === 'sam' : snapshot.runtime.chatAgents?.includes(agentId) || agentId === 'sam');
+  const agentOnline = () => Boolean(connectedAgent() && (currentTask() ? snapshot.runtime.online : snapshot.runtime.chatOnline));
+  const currentExecution = () => connectedAgent() ? currentTask()?.execution || (!currentTask() ? snapshot.runtime?.generals?.[agentId] || (agentId === 'sam' ? snapshot.runtime?.general : null) : null) : null;
   const draftKey = () => `${agentId}:${currentTask()?.id || 'general'}`;
 
   mount.classList.add('agent-workspace'); mount.hidden = true;
@@ -147,7 +149,8 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   runAction.addEventListener('click', () => {
     const task = currentTask(), execution = currentExecution();
     const active = ['queued', 'working', 'waiting_for_user', 'publishing'].includes(execution?.status);
-    mutate(() => active ? store.cancelRun(task?.id) : store.runTask(task?.id));
+    const target = task?.id || `${agentId}:general`;
+    mutate(() => active ? store.cancelRun(target) : store.runTask(target));
   });
   runBar.append(runCopy, runAction);
   const log = el('div', 'aw-messages'); log.setAttribute('role', 'log'); log.setAttribute('aria-label', 'Conversation messages'); log.setAttribute('aria-live', 'polite'); log.dataset.testid = 'chat-messages';
@@ -262,7 +265,8 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
 
   function renderMessages(task) {
     const messages = snapshot.messages.filter(message => message.agentId === agentId && (message.taskId || null) === (task?.id || null));
-    const signature = JSON.stringify([agentId, task?.id, messages, snapshot.storageAvailable]);
+    const execution = currentExecution();
+    const signature = JSON.stringify([agentId, task?.id, messages, execution, agentOnline(), snapshot.storageAvailable]);
     if (signature === logSignature) return;
     logSignature = signature;
     const wasNearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
@@ -271,7 +275,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       const actions = [newTaskButton()]; if (agentId === 'sam' && !task) actions.push(sampleButton());
       log.append(emptyState(`A little context goes a long way.`, task
         ? 'Add a note or question for this assignment. Your message will be saved with the task.'
-        : connectedAgent() ? 'Talk with Sam about this repository, or create a task when you want him to change code.' : `Give ${agent().name} an assignment, or leave a message for later. Nothing is sent to an AI agent yet.`, actions));
+        : connectedAgent() ? `Talk with ${agent().name} here. Your conversation is saved separately from project assignments.` : `Give ${agent().name} an assignment, or leave a message for later. Nothing is sent to an AI agent yet.`, actions));
     }
     for (const message of messages) {
       const item = el('article', `aw-message aw-message--${message.role}`); item.dataset.messageId = message.id;
@@ -282,7 +286,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       const time = el('time', '', stamp(message.createdAt)); time.dateTime = new Date(message.createdAt).toISOString(); time.title = stamp(message.createdAt, true); meta.append(time);
       const body = el('p', 'aw-message-text', message.text);
       item.append(meta, body);
-      if (message.role === 'user' && message.delivery !== 'sample') item.append(el('span', 'aw-message-delivery', connectedAgent() && !task?.isSample ? 'Saved to Sam’s conversation' : 'Saved to cloud · not sent to an agent'));
+      if (message.role === 'user' && message.delivery !== 'sample') item.append(el('span', 'aw-message-delivery', connectedAgent() && !task?.isSample ? task ? `Saved to ${agent().name}’s assignment` : chatDelivery(message.id, execution, agentOnline()) : 'Saved to cloud · not sent to an agent'));
       if (task) item.setAttribute('aria-label', `${who}, ${task.title}`);
       log.append(item);
     }
@@ -377,14 +381,14 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     const person = agent(); if (!person) return;
     const agentTasks = tasks(); const task = currentTask();
     name.textContent = person.name; role.textContent = person.role; avatar.textContent = person.name[0]; avatar.style.setProperty('--agent-color', person.color); renderPresence();
-    offline.textContent = connectedAgent() ? snapshot.runtime.online ? 'Connected' : 'Worker offline' : 'Not connected';
-    offline.dataset.online = String(Boolean(connectedAgent() && snapshot.runtime.online));
-    connectionNote.textContent = connectedAgent() ? snapshot.runtime.online ? 'Codex on your computer · Virtual-Team repository' : 'Chats are saved. Sam runs while this computer’s worker is online.' : 'Profile and skills ready. Chats are saved; execution is not connected.';
+    offline.textContent = connectedAgent() ? agentOnline() ? 'Connected' : 'Worker offline' : 'Not connected';
+    offline.dataset.online = String(agentOnline());
+    connectionNote.textContent = connectedAgent() ? agentOnline() ? `Chat with ${person.name} · Codex on your computer` : 'Chats are saved and wait for this computer’s worker.' : 'Profile and skills ready. Chats are saved; execution is not connected.';
     const projectRole = WORKFLOW_STEPS.some(d => d.agentId === agentId && projectState.runtime?.capabilities?.[d.kind]);
     projectWork.hidden = !projectRole;
     projectWork.textContent = 'Open project assignments and conversation ↗';
-    if (projectRole && agentId !== 'sam') { offline.textContent = projectState.runtime.online ? 'Project worker' : 'Worker offline'; connectionNote.textContent = 'Works through project handoffs. Use Projects for live assignments, documents and questions.'; }
-    taskQueueHelp.textContent = connectedAgent() ? 'Sam works in an isolated copy of Virtual-Team. Review the actual code before publishing.' : 'Saved to your workspace queue. No agent is connected to execute this task yet.';
+    if (projectRole && !connectedAgent()) { offline.textContent = projectState.runtime.online ? 'Project worker' : 'Worker offline'; connectionNote.textContent = 'Works through project handoffs. Use Projects for live assignments, documents and questions.'; }
+    taskQueueHelp.textContent = agentId === 'sam' && snapshot.runtime?.enabled ? 'Sam works in an isolated copy of Virtual-Team. Review the actual code before publishing.' : 'Saved to your workspace queue. Use Projects for connected project assignments; this standalone task cannot execute yet.';
     approvalNote.textContent = task?.review?.digest ? 'Approves this exact revision and creates a GitHub pull request. Merge it in GitHub to deploy.' : 'Saves this decision to your workspace. No files are changed.';
     approveButton.textContent = task?.review?.digest ? 'Approve & create PR' : 'Approve';
     storageWarning.hidden = !snapshot.persistenceError;
@@ -407,11 +411,12 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     contextBrief.hidden = !task?.brief; briefBody.textContent = task?.brief || '';
     sampleBar.hidden = !task?.isSample;
     const execution = currentExecution();
-    runBar.hidden = !connectedAgent() || task?.isSample || (!task && !execution);
+    const savedChat = snapshot.messages.some(message => message.agentId === agentId && message.taskId === null && message.role === 'user');
+    runBar.hidden = !connectedAgent() || task?.isSample || (!task && !execution && !savedChat);
     if (!runBar.hidden) {
-      runTitle.textContent = execution?.question?.text || execution?.activity || STATUS_LABELS[execution?.status] || 'Ready for Sam';
-      runDetail.textContent = execution?.error || (execution?.question ? 'Reply in the chat below to continue.' : execution?.status === 'in_review' ? 'Open Review to inspect the actual code changes.' : !snapshot.runtime.online ? 'The worker is offline. Saved work will wait here.' : task?.review?.decision === 'approved' ? 'The approved code will be shared as a pull request.' : 'Changes stay in an isolated branch until you review them.');
-      runAction.textContent = ['queued', 'working', 'waiting_for_user', 'publishing'].includes(execution?.status) ? 'Stop' : ['failed', 'interrupted', 'cancelled'].includes(execution?.status) ? 'Retry' : 'Start Sam';
+      runTitle.textContent = execution?.question?.text || execution?.activity || (!task && execution?.status === 'completed' ? 'Reply received' : STATUS_LABELS[execution?.status]) || `Ready for ${person.name}`;
+      runDetail.textContent = execution?.error || (execution?.question ? 'Reply in the chat below to continue.' : !agentOnline() ? 'The worker is offline. Saved work will wait here.' : !task ? execution?.status === 'queued' ? 'Waiting for the worker. It handles one conversation or assignment at a time.' : execution?.status === 'completed' ? `${person.name}’s reply is saved in this conversation.` : execution?.status === 'working' ? `${person.name} is preparing a reply.` : 'Send the saved messages to this agent.' : execution?.status === 'in_review' ? 'Open Review to inspect the actual code changes.' : task?.review?.decision === 'approved' ? 'The approved code will be shared as a pull request.' : 'Changes stay in an isolated branch until you review them.');
+      runAction.textContent = ['queued', 'working', 'waiting_for_user', 'publishing'].includes(execution?.status) ? 'Stop' : ['failed', 'interrupted', 'cancelled'].includes(execution?.status) ? 'Retry' : task ? `Start ${person.name}` : `Send to ${person.name}`;
       runAction.hidden = ['in_review', 'completed', 'publishing'].includes(execution?.status);
       runAction.disabled = pending;
     }
@@ -426,14 +431,14 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     composerLabel.textContent = `Message ${person.name}`;
     composer.placeholder = task?.status === 'waiting_for_user' || execution?.question ? `Reply to ${person.name}’s question…` : `Message ${person.name}…`;
     sendButton.disabled = pending || !composer.value.trim();
-    deliveryNote.textContent = pending ? 'Saving to workspace…' : snapshot.persistenceError ? 'Save needs attention · draft retained' : task?.isSample ? 'Sample conversation · cloud saved' : connectedAgent() ? snapshot.runtime.online ? 'Sam connected · cloud saved' : 'Worker offline · messages saved' : 'Cloud workspace · agent offline';
+    deliveryNote.textContent = pending ? 'Saving to workspace…' : snapshot.persistenceError ? 'Save needs attention · draft retained' : task?.isSample ? 'Sample conversation · cloud saved' : connectedAgent() ? agentOnline() ? `${person.name} connected · chat saved` : 'Worker offline · messages saved' : 'Cloud workspace · agent offline';
     if (formAgent !== agentId) {
       saveTaskDraft(); formAgent = agentId; const draft = taskDrafts.get(agentId) || {};
       titleInput.value = draft.title || ''; briefInput.value = draft.brief || ''; taskForm.hidden = true;
     }
     renderMessages(task); renderTasks(agentTasks); renderReview(task);
     const projectAgents = WORKFLOW_STEPS.filter(d => projectState.runtime?.capabilities?.[d.kind]).map(d => d.agentId);
-    const nextProfileSignature = `${agentId}:${Boolean(snapshot.runtime?.enabled)}:${Boolean(snapshot.runtime?.online)}:${Boolean(projectState.runtime?.online)}:${projectAgents.join(',')}`;
+    const nextProfileSignature = `${agentId}:${Boolean(snapshot.runtime?.enabled)}:${Boolean(snapshot.runtime?.online)}:${Boolean(snapshot.runtime?.chatOnline)}:${Boolean(projectState.runtime?.online)}:${projectAgents.join(',')}`;
     if (profileSignature !== nextProfileSignature) { profileSection.replaceChildren(renderAgentProfile(person, { ...snapshot.runtime, projectAgents, projectOnline: projectState.runtime?.online })); profileSignature = nextProfileSignature; }
     const cannotSave = pending || snapshot.connectionStatus === 'saving' || !snapshot.authenticated || snapshot.revision < 0;
     for (const control of [queueTask, approveButton, changesButton, sampleAction]) control.disabled = cannotSave;

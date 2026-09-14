@@ -2,9 +2,9 @@
 
 A private, desktop-and-tablet workspace for an AI team, presented as an interactive 3D office. Sam's chat opens first after sign-in. The application includes per-agent conversations, task history, a shared work queue, and an explicitly labeled sample code-review workflow.
 
-The frontend is Vite and Three.js. Vercel Functions provide the API, and PostgreSQL provisioned through Vercel Marketplace stores the workspace. Sam connects to a local Codex worker: he can discuss the repository, ask questions in chat, edit an isolated checkout, run checks and prepare actual code for review. The office now defines 20 agents across six departments, with per-role responsibilities and 25 curated skills. Project document and review roles now run through the local worker; Figma, project frontend and browser QA steps remain explicitly blocked until their capabilities are connected. Voice meetings remain previews.
+The frontend is Vite and Three.js. Vercel Functions provide the API, and PostgreSQL provisioned through Vercel Marketplace stores the workspace. All six core agents can chat through a local Codex worker with separate histories and role-specific instructions. Sam also handles coding assignments: he can discuss the repository, ask questions in chat, edit an isolated checkout, run checks and prepare actual code for review. The office now defines 20 agents across six departments, with per-role responsibilities and 25 curated skills. Project document and review roles now run through the local worker; Figma, project frontend and browser QA steps remain explicitly blocked until their capabilities are connected. Voice meetings remain previews.
 
-Sam works while the owner's computer and worker are online. The website and saved conversations remain available when the worker is off. See [RUNTIME.md](RUNTIME.md) for setup, execution boundaries, start/stop controls and recovery.
+The six core chats and connected assignments run while the owner's computer and worker are online. The website and saved conversations remain available when the worker is off. See [RUNTIME.md](RUNTIME.md) for setup, execution boundaries, start/stop controls and recovery.
 
 ## Departments and skills
 

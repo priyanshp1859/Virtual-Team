@@ -1,6 +1,6 @@
 # Sam — Full-stack Engineer
 
-Status: Connected through the existing local worker when it is online.
+Status: Direct general chat is connected through the local Codex worker when it is online. General chat is read-only; assignments and project reviews follow their separate workflows.
 
 Agent profile: Sam, Full-stack Engineer, Engineering.
 Builds complete features across the interface, API and data flow.

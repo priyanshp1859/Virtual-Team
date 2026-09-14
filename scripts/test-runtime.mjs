@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newRun, addRunMessage, effectiveStatus, decideRun } from '../server/runtime.js';
+import { newRun, addRunMessage, effectiveStatus, decideRun, queueChatMessage, finishChat, runKey } from '../server/runtime.js';
+import { chatInput, chatInstructions } from '../worker/chat-context.js';
+import { chatDelivery } from '../src/office/chat-status.js';
+import { CORE_TEAM } from '../src/office/workflow-config.js';
 import { cleanEnvironment } from '../worker/codex-client.js';
 import { checkoutPath } from '../worker/repository.js';
 
@@ -49,4 +52,57 @@ test('the coding subprocess cannot inherit database or cloud credentials', () =>
 test('task IDs never become filesystem paths', () => {
   assert.match(checkoutPath('/safe/state', '../../escape'), /^\/safe\/state\/jobs\/[a-f0-9]{24}\/repo$/);
   assert.notEqual(checkoutPath('/safe/state', 'one'), checkoutPath('/safe/state', 'two'));
+});
+test('core general conversations have distinct identities, references and checkout paths', () => {
+  const paths = new Set();
+  for (const agentId of CORE_TEAM) {
+    const run = newRun(null, 1, agentId);
+    addRunMessage(run, 'A response', 'agent');
+    assert.equal(run.messages[0].agentId, agentId);
+    assert.equal(run.mode, 'chat');
+    paths.add(checkoutPath('/safe/state', runKey(null, agentId)));
+    assert.match(chatInstructions(agentId, '/skills'), /General chat is read-only/);
+  }
+  assert.equal(paths.size, 6);
+  assert.throws(() => newRun(null, 1, 'milo'), /not connected/);
+  assert.throws(() => newRun('task-1', 1, 'nora'), /not connected/);
+});
+test('a new message during a reply remains queued even if the first response came later', () => {
+  const run = newRun(null, 1, 'nora');
+  run.status = 'working'; run.owner = 'worker'; run.leaseUntil = Date.now() + 60_000;
+  run.inputMessages = ['first'];
+  queueChatMessage(run, { text: 'Follow-up', messageId: 'second' });
+  finishChat(run);
+  assert.equal(run.status, 'queued');
+  assert.deepEqual(run.respondedMessageIds, ['first']);
+  assert.equal(run.owner, null);
+  const user = (id, agentId, taskId, text, createdAt) => ({ id, agentId, taskId, text, createdAt, role: 'user' });
+  run.messages = [{ ...user('reply', 'nora', null, 'First reply', 4), role: 'agent' }];
+  const input = chatInput([
+    user('first', 'nora', null, 'Initial question', 1), user('second', 'nora', null, 'Follow-up', 2),
+    user('private-maya', 'maya', null, 'Another chat secret', 2), user('private-task', 'nora', 'task-1', 'Assignment secret', 2),
+  ], run);
+  assert.doesNotMatch(input, /Another chat secret|Assignment secret/);
+  assert.equal(input.split('NEW USER MESSAGES\n')[1], 'Owner: Follow-up');
+});
+test('chat questions release the worker and only their matching answer queues a continuation', () => {
+  const run = newRun(null, 1, 'noor');
+  run.status = 'working'; run.owner = 'worker'; run.question = { id: 'q1', text: 'Which browser?' }; run.inputMessages = ['first'];
+  finishChat(run, { asked: true });
+  assert.equal(effectiveStatus(run, Date.now() + 999_999), 'waiting_for_user');
+  assert.equal(run.owner, null);
+  assert.throws(() => queueChatMessage(run, { questionId: 'old', text: 'Chrome' }), /question changed/);
+  queueChatMessage(run, { questionId: 'q1', text: 'Chrome', messageId: 'answer' });
+  assert.equal(run.status, 'queued'); assert.equal(run.question, null);
+  assert.equal(run.answer.text, 'Chrome');
+});
+test('chat message delivery distinguishes replies, queued follow-ups, offline and recovery', () => {
+  const execution = { status: 'working', respondedMessageIds: ['old'], inputMessageIds: ['old', 'current'] };
+  assert.equal(chatDelivery('old', execution, true), 'Reply received');
+  assert.equal(chatDelivery('current', execution, true), 'Agent is preparing a reply');
+  assert.equal(chatDelivery('followup', execution, true), 'Queued for a reply');
+  assert.equal(chatDelivery('current', execution, false), 'Saved · waiting for the worker');
+  assert.match(chatDelivery('current', { ...execution, status: 'failed' }, true), /retry/);
+  assert.match(chatDelivery('current', { ...execution, status: 'cancelled' }, true), /Stopped/);
+  assert.equal(chatDelivery('old-message', null, true), 'Saved · ready to send');
 });

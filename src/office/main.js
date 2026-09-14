@@ -184,7 +184,7 @@ function updateTeamTasks() {
   const { tasks, runtime } = workspace.getState();
   const projectRuntime = projects.getState().runtime;
   const prototypeNote = document.querySelector('.prototype-note');
-  if (prototypeNote) prototypeNote.textContent = runtime?.enabled ? `Sam ${runtime.online ? 'connected' : 'offline'} · project handoffs in Projects · meetings are previews.` : 'Office preview · no live agents or microphone.';
+  if (prototypeNote) prototypeNote.textContent = runtime?.enabled ? `Core team chat ${runtime.chatOnline ? 'connected' : 'offline'} · project handoffs in Projects · meetings are previews.` : 'Office preview · no live agents or microphone.';
   AGENTS.forEach(agent => {
     const button = document.querySelector(`#team-list [data-agent="${agent.id}"]`);
     const assigned = tasks.filter(task => task.agentId === agent.id && task.status !== 'completed');
@@ -198,8 +198,9 @@ function updateTeamTasks() {
     const latest = assigned.toSorted((a, b) => b.updatedAt - a.updatedAt)[0];
     const presence = button.querySelector('.person-presence');
     const projectRole = WORKFLOW_STEPS.some(d => d.agentId === agent.id && projectRuntime?.capabilities?.[d.kind]);
-    const connected = agent.id === 'sam' && runtime?.online || projectRole && projectRuntime?.online;
-    const connection = connected ? agent.id === 'sam' ? 'Sam connected' : 'Project worker connected' : agent.id === 'sam' && runtime?.enabled ? 'Worker offline' : 'Agent not connected';
+    const chatConnected = runtime?.chatAgents?.includes(agent.id) && runtime.chatOnline;
+    const connected = chatConnected || agent.id === 'sam' && runtime?.online || projectRole && projectRuntime?.online;
+    const connection = chatConnected ? `${agent.name} chat connected` : connected ? 'Project worker connected' : (runtime?.chatAgents?.includes(agent.id) || agent.id === 'sam') && runtime?.enabled ? 'Worker offline' : 'Agent not connected';
     presence.className = `person-presence ${connected ? 'connected' : 'disconnected'}`;
     presence.setAttribute('aria-label', connection);
     button.title = latest ? `${STATUS_LABELS[latest.status]}${latest.isSample ? ' · sample' : ''} · ${connection}` : connection;

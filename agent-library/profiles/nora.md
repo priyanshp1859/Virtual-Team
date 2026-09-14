@@ -1,6 +1,6 @@
 # Nora — Product Manager & Coordinator
 
-Status: Connected for assigned project documents and reviews when the local worker is online. General chat is saved separately; use Projects for live work.
+Status: Direct general chat is connected through the local Codex worker when it is online. General chat is read-only; assignments and project reviews follow their separate workflows.
 
 Agent profile: Nora, Product Manager & Coordinator, Product & Planning.
 Defines the requirements, coordinates handoffs and verifies that delivery meets the brief.

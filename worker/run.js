@@ -6,7 +6,8 @@ import { parseEnv } from 'node:util';
 import postgres from 'postgres';
 import { CodexClient, clientConfiguration } from './codex-client.js';
 import { prepareRepository, collectReview, commitReview, publishReview, checkoutPath } from './repository.js';
-import { workerHeartbeat, claimRun, updateOwnedRun, getRun, addRunMessage } from '../server/runtime.js';
+import { workerHeartbeat, claimRun, updateOwnedRun, getRun, addRunMessage, runAgent, runKey, finishChat } from '../server/runtime.js';
+import { chatInstructions, chatInput } from './chat-context.js';
 import { claimProjectStep } from '../server/projects.js';
 import { runProjectJob } from './project-runner.js';
 import { getProfile, roleInstructions } from '../agent-library/profiles.js';
@@ -14,7 +15,6 @@ import { getProfile, roleInstructions } from '../agent-library/profiles.js';
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const skillRoot = join(repository, 'agent-library', 'skills');
-const skillRoots = getProfile('sam').skills.map(skill => join(skillRoot, skill.id));
 const envFile = resolve(process.env.SAM_ENV_FILE || join(repository, '.env.worker.local'));
 const settings = parseEnv(await readFile(envFile, 'utf8'));
 const databaseUrl = settings.DATABASE_URL || settings.POSTGRES_URL;
@@ -45,9 +45,11 @@ function safeError(error) {
 
 async function runJob(job) {
   const { run, task, messages } = job;
-  const update = (mutate, options) => updateOwnedRun(sql, run.taskId, owner, run.attempt, mutate, options);
+  const agentId = runAgent(run), person = getProfile(agentId);
+  const skillRoots = person.skills.map(skill => join(skillRoot, skill.id));
+  const update = (mutate, options) => updateOwnedRun(sql, run.taskId, owner, run.attempt, mutate, { ...options, agentId });
   let alive = true, leaseBusy = false, eventQueue = Promise.resolve(), threadId = null, heartbeat;
-  let finalText = '', client, waitTurn;
+  let finalText = '', client, waitTurn, asked = false;
   const enqueue = action => { eventQueue = eventQueue.then(action).catch(error => { alive = false; client?.close(); throw error; }); eventQueue.catch(() => {}); };
   heartbeat = setInterval(async () => {
     if (leaseBusy || !alive) return;
@@ -63,8 +65,8 @@ async function runJob(job) {
       await update(current => { current.review.pullRequestUrl = url; current.status = 'completed'; current.activity = null; addRunMessage(current, `Your approved changes are ready: ${url}\nMerge the pull request in GitHub when you are ready to update the live site.`); });
       return;
     }
-    const checkout = await prepareRepository({ repository, stateDir, run, baseRef });
-    await update(current => { Object.assign(current, { checkout: checkout.cwd, base: checkout.base, branch: checkout.branch, activity: 'Reading the repository' }); });
+    const checkout = await prepareRepository({ repository, stateDir, run: task ? run : { ...run, taskId: runKey(null, agentId) }, baseRef });
+    await update(current => { Object.assign(current, { checkout: checkout.cwd, base: checkout.base, branch: checkout.branch, activity: task ? 'Reading the repository' : `${person.name} is preparing a reply` }); });
     const args = await clientConfiguration(checkout.cwd, join(repository, 'node_modules'), { readonly: !task, skillRoots });
     const completion = new Promise((resolve, reject) => { waitTurn = { resolve, reject }; });
     completion.catch(() => {});
@@ -75,6 +77,7 @@ async function runJob(job) {
         if (method === 'worker/disconnected') { waitTurn.reject(new Error(params.error)); return; }
         if (params?.threadId && threadId && params.threadId !== threadId) return;
         if (method === 'item/completed' && params.item?.type === 'agentMessage') {
+          if (asked && !task) return; // The saved question is the complete response for this turn.
           const item = params.item;
           if (item.phase === 'final_answer' || !item.phase) finalText = item.text;
           const id = agentMessages.get(item.id) || randomUUID(); agentMessages.set(item.id, id);
@@ -93,13 +96,18 @@ async function runJob(job) {
       },
       onRequest: async request => {
         if (request.method === 'item/tool/call' && request.params.tool === 'ask_user') {
+          if (asked && !task) return { success: true, contentItems: [{ type: 'inputText', text: 'Your question is already saved. End this turn now and wait for the owner to reply in a later turn.' }] };
           const text = request.params.arguments?.question;
           if (typeof text !== 'string' || !text.trim() || text.length > 2000) throw new Error('Ask one question of up to 2,000 characters.');
           await eventQueue;
           const questionId = randomUUID();
           await update(current => { current.status = 'waiting_for_user'; current.question = { id: questionId, text }; current.answer = null; current.activity = 'Waiting for your answer'; addRunMessage(current, text, 'agent'); });
+          if (!task) {
+            asked = true;
+            return { success: true, contentItems: [{ type: 'inputText', text: 'Your question was delivered to the owner. End this turn now without repeating it. The owner’s answer will arrive in a new turn.' }] };
+          }
           while (alive && !stopped) {
-            const current = await getRun(sql, run.taskId);
+            const current = await getRun(sql, run.taskId, agentId);
             if (current?.owner !== owner || current.attempt !== run.attempt || current.cancelRequested) throw new Error('This run was stopped.');
             if (current.answer?.questionId === questionId) {
               const answer = current.answer.text;
@@ -125,28 +133,29 @@ async function runJob(job) {
     });
     if (canary.exitCode !== 0) throw new Error('The installed Codex runtime could not enforce the workspace boundary. Sam was not started.');
     const started = await client.request('thread/start', { cwd: checkout.cwd, runtimeWorkspaceRoots: [checkout.cwd], permissions: 'sam', approvalPolicy: 'never', ephemeral: true,
-      serviceName: 'virtual-team', developerInstructions: `${instructions}\n\n${roleInstructions('sam', { referenceRoot: skillRoot })}`, selectedCapabilityRoots: [],
-      dynamicTools: [{ type: 'function', name: 'ask_user', description: 'Ask the workspace owner a necessary question in this chat and wait for their answer.', inputSchema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'], additionalProperties: false } }],
+      serviceName: 'virtual-team', developerInstructions: task ? `${instructions}\n\n${roleInstructions('sam', { referenceRoot: skillRoot })}` : chatInstructions(agentId, skillRoot), selectedCapabilityRoots: [],
+      dynamicTools: [{ type: 'function', name: 'ask_user', description: task ? 'Ask the workspace owner a necessary question in this chat and wait for their answer.' : 'Save a necessary question in your chat, then end this turn. The owner will answer in a later turn.', inputSchema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'], additionalProperties: false } }],
     });
     threadId = started.thread.id;
-    const latestRun = await getRun(sql, run.taskId);
+    const latestRun = await getRun(sql, run.taskId, agentId);
     const transcript = [...messages, ...latestRun.messages.filter(message => message.role === 'agent')].sort((a, b) => a.createdAt - b.createdAt).slice(-35).map(message => `${message.role === 'user' ? 'User' : 'Sam'}: ${message.text}`).join('\n\n');
     const brief = task ? `Assigned task: ${task.title}\nTask brief: ${task.brief}\n${run.review?.comment ? `Requested revision: ${run.review.comment}\n` : ''}` : 'General conversation: answer or inspect the repository; do not change files. The user creates an assignment in Tasks to authorize implementation.';
     await client.request('turn/start', { threadId, cwd: checkout.cwd, runtimeWorkspaceRoots: [checkout.cwd], permissions: 'sam', approvalPolicy: 'never',
-      input: [{ type: 'text', text: `${brief}\n\nConversation:\n${transcript || '(No additional messages.)'}` }],
+      input: [{ type: 'text', text: task ? `${brief}\n\nConversation:\n${transcript || '(No additional messages.)'}` : chatInput(messages, latestRun) }],
       ...(settings.SAM_REASONING_EFFORT ? { effort: settings.SAM_REASONING_EFFORT } : {}),
     });
     let executionSeconds = 0;
     const deadline = setInterval(async () => {
-      const current = await getRun(sql, run.taskId).catch(() => null);
-      if (current?.status !== 'waiting_for_user') executionSeconds += 10;
-      if (stopped || !alive || executionSeconds >= 1200) { client.close(); }
+      const current = await getRun(sql, run.taskId, agentId).catch(() => null);
+      if (!task || current?.status !== 'waiting_for_user') executionSeconds += 10;
+      if (stopped || !alive || (current && (current.cancelRequested || current.owner !== owner)) || executionSeconds >= (task ? 1200 : 300)) { client.close(); }
     }, 10_000);
     try { await completion; await eventQueue; } finally { clearInterval(deadline); }
     if (!task) {
-      await update(current => { current.status = current.pendingInput ? 'queued' : 'completed'; current.activity = null; }); return;
+      if (!asked && !finalText.trim()) throw new Error(`${person.name} finished without a reply. Please retry this message.`);
+      await update(current => finishChat(current, { asked })); return;
     }
-    let current = await getRun(sql, run.taskId);
+    let current = await getRun(sql, run.taskId, agentId);
     if (current.pendingInput) {
       await update(value => { value.status = 'queued'; value.activity = null; addRunMessage(value, 'I received your additional note and will include it before preparing the review.'); }); return;
     }
@@ -177,9 +186,12 @@ async function runJob(job) {
   } catch (error) {
     await eventQueue.catch(() => {});
     try {
-      await update(current => { current.status = stopped ? 'interrupted' : 'failed'; current.activity = null; current.error = safeError(error); current.question = null; current.answer = null; addRunMessage(current, current.error); });
+      await update(current => {
+        if (asked && !task && current.question) { finishChat(current, { asked: true }); return; }
+        current.status = stopped ? 'interrupted' : 'failed'; current.activity = null; current.error = safeError(error); current.question = null; current.answer = null; addRunMessage(current, current.error);
+      });
     } catch { /* A newer worker, cancellation or expired lease owns this record. */ }
-    console.error('Sam run needs attention. Check the workspace for its status.');
+    console.error(`${person.name} run ended before normal completion. Check the workspace for its status.`);
   } finally {
     alive = false; clearInterval(heartbeat); client?.close(); activeClient = null;
   }
@@ -188,7 +200,7 @@ async function runJob(job) {
 try {
   await workerHeartbeat(sql, owner);
   await writeFile(join(stateDir, 'worker.json'), JSON.stringify({ pid: process.pid, instance: owner, repository, envFile, startedAt: new Date().toISOString() }), { mode: 0o600 });
-  console.log('Sam worker connected. Waiting for Virtual-Team assignments.');
+  console.log('Office worker connected. Waiting for core-agent chats and Virtual-Team assignments.');
   while (!stopped) {
     await workerHeartbeat(sql, owner);
     const job = await claimRun(sql, owner);
