@@ -7,6 +7,7 @@ export const LEASE_MS = 60_000;
 export const ACTIVE = new Set(['working', 'waiting_for_user', 'publishing']);
 export const runKey = (taskId, agentId = 'sam') => taskId || `${agentId}:general`;
 export const runAgent = run => run.agentId || 'sam';
+const agentName = id => id[0].toUpperCase() + id.slice(1);
 const conflict = message => { throw new ApiError(409, 'runtime_conflict', message); };
 export const runtimeEnabled = env => env.SAM_RUNTIME_ENABLED === 'true';
 
@@ -92,12 +93,12 @@ export const runtimeHooks = {
       run.cancelRequested = false; run.owner = null; run.leaseUntil = 0;
       // A failed publish retries the already approved, immutable revision.
       if (run.review?.decision !== 'approved') run.mode = taskId ? 'code' : 'chat';
-      addRunMessage(run, `Queued for ${agentId}. Work starts when this computer’s worker is available.`);
+      addRunMessage(run, `Queued for ${agentName(agentId)}. Work starts when this computer’s worker is available.`);
     } else if (action === 'cancelRun') {
       if (run?.status === 'publishing') conflict('The approved pull request is already being published. Wait for its result before taking another action.');
       if (!run || !['queued', ...ACTIVE].includes(effectiveStatus(run))) conflict('There is no running or queued work to stop.');
       run.cancelRequested = true; run.status = 'cancelled'; run.question = null; run.answer = null;
-      addRunMessage(run, 'Stop requested. The worker will end this run at its next check. Isolated changes are retained; the live site is unchanged.');
+      addRunMessage(run, taskId ? 'Stop requested. The worker will end this run at its next check. Isolated changes are retained; the live site is unchanged.' : 'Stop requested. Your messages and any replies are saved. Use Retry to ask for a reply again.');
     } else if (action === 'reviewRun') {
       if (!run || !taskId) conflict('No live result is ready for review.');
       decideRun(run, input);
@@ -145,7 +146,7 @@ export async function runtimeSnapshot(sql, response) {
     const status = effectiveStatus(run, now), agentId = runAgent(run);
     if (!CORE_TEAM.includes(agentId)) continue;
     const details = { status, question: run.question ? { id: run.question.id, text: run.question.text } : null,
-      error: status === 'interrupted' ? 'The worker disconnected. Partial changes were preserved. Retry when it is online.' : run.error,
+      error: status === 'interrupted' ? run.taskId ? 'The worker disconnected. Partial changes were preserved. Retry when it is online.' : 'The reply was interrupted. Your messages are saved. Retry when the worker is online.' : run.error,
       activity: run.activity || null, attempt: run.attempt, inputMessageIds: run.inputMessages || [], respondedMessageIds: run.respondedMessageIds || [] };
     if (run.taskId === null) { copy.state.runtime.generals[agentId] = details; if (agentId === 'sam') copy.state.runtime.general = details; }
     else {
@@ -189,7 +190,7 @@ export async function claimRun(sql, owner) {
     run.status = run.mode === 'publish' ? 'publishing' : 'working';
     run.attempt++; run.question = null; run.answer = null; run.error = null; run.pendingInput = false;
     run.inputMessages = state.messages.filter(message => message.agentId === runAgent(run) && message.taskId === run.taskId && message.role === 'user').map(message => message.id);
-    addRunMessage(run, run.mode === 'publish' ? 'Publishing the approved revision as a pull request.' : `${runAgent(run)} started working.`);
+    addRunMessage(run, run.mode === 'publish' ? 'Publishing the approved revision as a pull request.' : `${agentName(runAgent(run))} started working.`);
     await saveRun(tx, run);
     return { changed: true, value: { run, task: state.tasks.find(task => task.id === run.taskId) || null, messages: state.messages.filter(message => message.agentId === runAgent(run) && message.taskId === run.taskId && message.role === 'user') } };
   });
