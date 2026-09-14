@@ -26,9 +26,11 @@ Optional worker settings: `SAM_STATE_DIR` changes the private checkout/log direc
 
 ## Role and skill references
 
-The full roster is documented in [AGENT_TEAM.md](AGENT_TEAM.md). Only Sam is connected to this worker. His authored profile is injected into each new Codex thread with entrypoint paths for `fullstack-guardian`, `javascript-pro` and `test-master`. Sam reads a package only when it is relevant. The worker exposes these three host package directories read-only, so earlier isolated checkouts can use the reviewed references without modifying their saved code. Other packages are not granted host filesystem access.
+The full roster is documented in [AGENT_TEAM.md](AGENT_TEAM.md). Sam handles standalone coding jobs; the same worker also executes project document/review stages for their assigned roles. His authored profile is injected into each new Codex thread with entrypoint paths for `fullstack-guardian`, `javascript-pro` and `test-master`. Sam reads a package only when it is relevant. The worker exposes these three host package directories read-only, so earlier isolated checkouts can use the reviewed references without modifying their saved code. Other packages are not granted host filesystem access.
 
-Role instructions keep project guidance and existing tools authoritative: upstream Jest, tool invocation, deployment and delegation examples do not change this application's stack or permissions. Bundled helpers are reference assets; installation does not run them. Additional role profiles are ready for later runtime configuration and do not start extra worker processes.
+Role instructions keep project guidance and existing tools authoritative: upstream Jest, tool invocation, deployment and delegation examples do not change this application's stack or permissions. Bundled helpers are reference assets; installation does not run them. Document and review roles receive their own assigned references with read-only repository access. The worker checks eligible queued work without creating a process per idle role. Project code, Figma and browser QA capabilities are still blocked until connected.
+
+Project runs, exact-version owner decisions, capability blocking and local artifact copies are documented in [PROJECT_WORKFLOW.md](PROJECT_WORKFLOW.md). The additive `db/003-project-workflow.sql` migration is required before starting this worker version.
 
 ## Boundaries
 

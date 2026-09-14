@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
       }
       server.middlewares.use(async (request, response, next) => {
         const path = request.url?.split('?')[0];
-        const routes = { '/api/session': './api/session.js', '/api/workspace': './api/workspace.js' };
+        const routes = { '/api/session': './api/session.js', '/api/workspace': './api/workspace.js', '/api/projects': './api/projects.js' };
         if (!routes[path]) return next();
         try {
           const { default: handler } = await import(pathToFileURL(resolve(process.cwd(), routes[path])).href);

@@ -1,4 +1,5 @@
 import { AGENTS, DEPARTMENTS } from './config.js';
+import { WORKFLOW_STEPS } from './workflow-config.js';
 import { STATUS_LABELS } from './cloud-store.js';
 import { renderAgentProfile } from './team-directory.js';
 import './agent-panel.css';
@@ -55,9 +56,10 @@ export function diffLines(before, after) {
 }
 
 /** Cloud-saved conversations and review UI; no model or file execution. */
-export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAgent = () => {} }) {
+export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAgent = () => {}, onOpenProject = () => {} }) {
   if (!mount || !store) throw new Error('Agent workspace needs a mount and store.');
   let snapshot = store.getState();
+  let projectState = { projects: [], runtime: null };
   let agentId = 'sam'; let tab = 'chat'; let opened = false; let disposed = false;
   let returnFocus = null; let presence = null; let reviewTarget = null;
   let composerKey = ''; let formAgent = ''; let feedbackKey = '';
@@ -87,6 +89,14 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   const offline = el('span', 'aw-offline', 'Not connected');
   const connectionNote = el('span');
   connection.append(offline, connectionNote);
+  const projectWork = button('Open project work', 'aw-project-work'); projectWork.hidden = true;
+  projectWork.addEventListener('click', () => {
+    for (const project of projectState.projects) {
+      const step = WORKFLOW_STEPS.find(d => d.agentId === agentId && project.steps[d.id].status !== 'locked');
+      if (step) { onOpenProject({ projectId: project.id, stepId: step.id }); return; }
+    }
+    onOpenProject({});
+  });
   const storageWarning = el('p', 'aw-storage-warning'); storageWarning.setAttribute('role', 'status'); storageWarning.hidden = true;
   const error = el('p', 'aw-error'); error.setAttribute('role', 'alert'); error.hidden = true; error.dataset.testid = 'workspace-error';
   const nav = el('div', 'aw-tabs'); nav.setAttribute('role', 'tablist'); nav.setAttribute('aria-label', 'Agent workspace sections');
@@ -201,7 +211,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   const approvalNote = el('p', 'aw-approval-note');
   reviewForm.append(feedbackLabel, feedback, el('p', 'aw-help', 'Feedback is required when requesting changes.'), reviewActions, approvalNote);
   reviewSection.append(reviewContent, reviewForm);
-  mount.replaceChildren(header, connection, storageWarning, error, nav, ...sections.values());
+  mount.replaceChildren(header, connection, projectWork, storageWarning, error, nav, ...sections.values());
 
   function saveDraft() { if (composerKey) drafts.set(composerKey, composer.value); }
   function saveTaskDraft() { if (formAgent) taskDrafts.set(formAgent, { title: titleInput.value, brief: briefInput.value }); }
@@ -370,6 +380,10 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     offline.textContent = connectedAgent() ? snapshot.runtime.online ? 'Connected' : 'Worker offline' : 'Not connected';
     offline.dataset.online = String(Boolean(connectedAgent() && snapshot.runtime.online));
     connectionNote.textContent = connectedAgent() ? snapshot.runtime.online ? 'Codex on your computer · Virtual-Team repository' : 'Chats are saved. Sam runs while this computer’s worker is online.' : 'Profile and skills ready. Chats are saved; execution is not connected.';
+    const projectRole = WORKFLOW_STEPS.some(d => d.agentId === agentId && projectState.runtime?.capabilities?.[d.kind]);
+    projectWork.hidden = !projectRole;
+    projectWork.textContent = 'Open project assignments and conversation ↗';
+    if (projectRole && agentId !== 'sam') { offline.textContent = projectState.runtime.online ? 'Project worker' : 'Worker offline'; connectionNote.textContent = 'Works through project handoffs. Use Projects for live assignments, documents and questions.'; }
     taskQueueHelp.textContent = connectedAgent() ? 'Sam works in an isolated copy of Virtual-Team. Review the actual code before publishing.' : 'Saved to your workspace queue. No agent is connected to execute this task yet.';
     approvalNote.textContent = task?.review?.digest ? 'Approves this exact revision and creates a GitHub pull request. Merge it in GitHub to deploy.' : 'Saves this decision to your workspace. No files are changed.';
     approveButton.textContent = task?.review?.digest ? 'Approve & create PR' : 'Approve';
@@ -418,8 +432,9 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       titleInput.value = draft.title || ''; briefInput.value = draft.brief || ''; taskForm.hidden = true;
     }
     renderMessages(task); renderTasks(agentTasks); renderReview(task);
-    const nextProfileSignature = `${agentId}:${Boolean(snapshot.runtime?.enabled)}:${Boolean(snapshot.runtime?.online)}`;
-    if (profileSignature !== nextProfileSignature) { profileSection.replaceChildren(renderAgentProfile(person, snapshot.runtime)); profileSignature = nextProfileSignature; }
+    const projectAgents = WORKFLOW_STEPS.filter(d => projectState.runtime?.capabilities?.[d.kind]).map(d => d.agentId);
+    const nextProfileSignature = `${agentId}:${Boolean(snapshot.runtime?.enabled)}:${Boolean(snapshot.runtime?.online)}:${Boolean(projectState.runtime?.online)}:${projectAgents.join(',')}`;
+    if (profileSignature !== nextProfileSignature) { profileSection.replaceChildren(renderAgentProfile(person, { ...snapshot.runtime, projectAgents, projectOnline: projectState.runtime?.online })); profileSignature = nextProfileSignature; }
     const cannotSave = pending || snapshot.connectionStatus === 'saving' || !snapshot.authenticated || snapshot.revision < 0;
     for (const control of [queueTask, approveButton, changesButton, sampleAction]) control.disabled = cannotSave;
     if (task?.review?.digest && !task.review.publishable) approveButton.disabled = true;
@@ -461,6 +476,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       log.replaceChildren(); taskList.replaceChildren(); reviewContent.replaceChildren(); clearError();
       snapshot = store.getState(); render();
     },
+    setProjects(state) { projectState = state; render(); },
     setPresence(state) { presence = state; renderPresence(); },
     dispose() { if (disposed) return; saveDraft(); disposed = true; unsubscribe?.(); mount.removeEventListener('keydown', handleKey); mount.replaceChildren(); mount.hidden = true; },
   };

@@ -8,6 +8,9 @@ import './style.css';
 import { createCloudStore, STATUS_LABELS } from './cloud-store.js';
 import { createAgentPanel } from './agent-panel.js';
 import { createWorkspaceOverview } from './workspace-overview.js';
+import { WORKFLOW_STEPS } from './workflow-config.js';
+import { createProjectStore } from './project-store.js';
+import { createProjectWorkspace } from './project-workspace.js';
 import { createAuthView } from './auth-view.js';
 
 const $ = (id) => document.getElementById(id);
@@ -57,13 +60,27 @@ const homeTarget = new THREE.Vector3(0, 0, 0);
 const roomMap = new Map(ROOMS.map(r => [r.id, r]));
 const workspace = createCloudStore();
 createAuthView({ store: workspace });
+const projects = createProjectStore({ onUnauthorized: () => workspace.refresh().catch(() => {}) });
+const projectWorkspace = createProjectWorkspace({ store: projects, mount: $('project-entry') });
 const agentPanel = createAgentPanel({
   mount: $('agent-workspace'),
   store: workspace,
   onClose: clearSelection,
+  onOpenProject: options => projectWorkspace.open(options),
   onSelectAgent: (id, options) => selectAgent(id, false, options),
 });
-const teamDirectory = createTeamDirectory({ store: workspace, onSelect: id => selectAgent(id, false, { tab: 'profile' }) });
+const teamDirectory = createTeamDirectory({ store: workspace, projectStore: projects, onSelect: id => selectAgent(id, false, { tab: 'profile' }) });
+let openedProjectLink = false;
+projects.subscribe(state => {
+  agentPanel.setProjects(state); updateTeamTasks();
+  const params = new URLSearchParams(location.search), id = params.get('project');
+  if (!openedProjectLink && state.authenticated && id && state.projects.some(p => p.id === id)) {
+    openedProjectLink = true;
+    const stepId = WORKFLOW_STEPS.some(s => s.id === params.get('step')) ? params.get('step') : undefined;
+    projectWorkspace.open({ projectId: id, stepId });
+  }
+  if (!state.authenticated) openedProjectLink = false;
+});
 $('team-directory-button').addEventListener('click', () => teamDirectory.open());
 createWorkspaceOverview({
   mount: $('work-summary'),
@@ -88,6 +105,9 @@ $('work-summary').after(cloudError);
 let openedWorkspace = false, initializedScene = false, refreshPending = false;
 function showCloudState(state) {
   const ready = state.authenticated && state.revision >= 0;
+  const wasAuthenticated = projects.getState().authenticated;
+  projects.setAuthenticated(ready);
+  if (ready && !wasAuthenticated) projects.refresh().catch(() => {});
   $('office-app').hidden = !ready;
   if (ready && !openedWorkspace) {
     openedWorkspace = true;
@@ -109,7 +129,7 @@ workspace.subscribe(showCloudState); showCloudState(workspace.getState());
 async function refreshWorkspace() {
   if (refreshPending || !workspace.getState().authenticated || workspace.getState().connectionStatus === 'saving') return;
   refreshPending = true; refreshButton.disabled = true;
-  try { await workspace.refresh(); } catch { /* Store exposes the failed sync without replacing saved data. */ }
+  try { await Promise.all([workspace.refresh(), projects.refresh()]); } catch { /* Store exposes the failed sync without replacing saved data. */ }
   finally { refreshPending = false; showCloudState(workspace.getState()); }
 }
 refreshButton.addEventListener('click', refreshWorkspace);
@@ -165,8 +185,9 @@ function overview() {
 
 function updateTeamTasks() {
   const { tasks, runtime } = workspace.getState();
+  const projectRuntime = projects.getState().runtime;
   const prototypeNote = document.querySelector('.prototype-note');
-  if (prototypeNote) prototypeNote.textContent = runtime?.enabled ? `Sam ${runtime.online ? 'connected' : 'offline'} · 19 profiles ready · meetings are previews.` : 'Office preview · no live agents or microphone.';
+  if (prototypeNote) prototypeNote.textContent = runtime?.enabled ? `Sam ${runtime.online ? 'connected' : 'offline'} · project handoffs in Projects · meetings are previews.` : 'Office preview · no live agents or microphone.';
   AGENTS.forEach(agent => {
     const button = document.querySelector(`#team-list [data-agent="${agent.id}"]`);
     const assigned = tasks.filter(task => task.agentId === agent.id && task.status !== 'completed');
@@ -179,8 +200,9 @@ function updateTeamTasks() {
     badge.setAttribute('aria-label', `${assigned.length} unfinished tasks${needsAttention ? ', needs your attention' : ''}`);
     const latest = assigned.toSorted((a, b) => b.updatedAt - a.updatedAt)[0];
     const presence = button.querySelector('.person-presence');
-    const connected = agent.id === 'sam' && runtime?.online;
-    const connection = connected ? 'Sam connected' : agent.id === 'sam' && runtime?.enabled ? 'Worker offline' : 'Agent not connected';
+    const projectRole = WORKFLOW_STEPS.some(d => d.agentId === agent.id && projectRuntime?.capabilities?.[d.kind]);
+    const connected = agent.id === 'sam' && runtime?.online || projectRole && projectRuntime?.online;
+    const connection = connected ? agent.id === 'sam' ? 'Sam connected' : 'Project worker connected' : agent.id === 'sam' && runtime?.enabled ? 'Worker offline' : 'Agent not connected';
     presence.className = `person-presence ${connected ? 'connected' : 'disconnected'}`;
     presence.setAttribute('aria-label', connection);
     button.title = latest ? `${STATUS_LABELS[latest.status]}${latest.isSample ? ' · sample' : ''} · ${connection}` : connection;
@@ -384,7 +406,7 @@ container.addEventListener('pointermove', event => {
 });
 container.addEventListener('pointerleave', () => $('hover-tag').hidden = true);
 document.addEventListener('keydown', event => {
-  if (!openedWorkspace) return;
+  if (!openedWorkspace || document.querySelector('dialog[open]')) return;
   if (event.defaultPrevented || event.target.matches('input,textarea,select') || event.target.isContentEditable) return;
   if (event.key === 'Escape') clearSelection();
   if (event.key.toLowerCase() === 'o' && !event.metaKey && !event.ctrlKey) overview();

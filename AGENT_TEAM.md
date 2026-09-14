@@ -1,6 +1,6 @@
 # The Virtual Team roster
 
-20 agents across 6 departments, with 25 selected skills discovered on [skills.sh](https://www.skills.sh/). These are the current role definitions; connections and cross-agent workflows are a separate next step. Sam is the only live runtime.
+20 agents across 6 departments, with 25 selected skills discovered on [skills.sh](https://www.skills.sh/). Sam handles standalone coding tasks. Nora, Theo, Eden, Maya, Milo, Ava and Alex can execute assigned project documents and independent document reviews through the local worker. Project Figma, frontend and browser QA capabilities remain explicitly blocked until connected.
 
 The eight starter-team roles are marked below. This marks the proposed initial team, not eight running processes. Existing agent IDs and conversations are preserved. Six existing avatars remain in the office; additional seating awaits assignment.
 
@@ -33,6 +33,6 @@ Chosen for role fit, concrete workflows, source provenance, stack compatibility 
 
 Each package is pinned to an upstream commit. Source links, project adaptations and requirements are in [the skill catalog](agent-library/catalog.json); file hashes are in [the lock file](agent-library/skills.lock.json). The copied skill instructions and bundled helper scripts remain unchanged. Scripts were downloaded as reference assets, not executed during installation. License notices are retained in the package or [license directory](agent-library/licenses). This source and compatibility review is not a security certification.
 
-Sam receives only his authored role brief and three assigned skill entrypoints; he reads relevant references on demand. General chat remains read-only. Other agents have persistent chat/task profiles and mapped skills, but do not execute work yet. Browser tools, Figma, external services and database access are not granted by installing a skill.
+Sam receives only his authored role brief and three assigned skill entrypoints; he reads relevant references on demand. General chat remains read-only. Project roles receive their own brief and relevant assigned references; the workflow server routes their handoffs. Other roles retain their saved profiles while their execution capabilities are pending. Browser tools, Figma, external services and database access are not granted by installing a skill.
 
 Run `npm run agents:generate` after editing the roster or catalog, and `npm run test:agents` to check role coverage, identity preservation, stored conversation compatibility and installed file integrity.

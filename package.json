@@ -10,7 +10,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node scripts/test-office-workspace.mjs && node scripts/test-office.mjs && node --test scripts/test-api.mjs scripts/test-cloud-store.mjs scripts/test-runtime.mjs scripts/test-agents.mjs",
+    "test": "node scripts/test-office-workspace.mjs && node scripts/test-office.mjs && node --test scripts/test-api.mjs scripts/test-cloud-store.mjs scripts/test-runtime.mjs scripts/test-agents.mjs scripts/test-projects.mjs scripts/test-project-store.mjs",
     "db:migrate": "node server/migrate.js",
     "test:api": "node --test scripts/test-api.mjs",
     "test:cloud": "node --test scripts/test-cloud-store.mjs",
@@ -22,7 +22,8 @@
     "test:runtime": "node --test scripts/test-runtime.mjs",
     "test:runtime-db": "node --env-file=.env.test.local scripts/test-runtime-database.mjs",
     "agents:generate": "node scripts/generate-agent-profiles.mjs",
-    "test:agents": "node --test scripts/test-agents.mjs"
+    "test:agents": "node --test scripts/test-agents.mjs",
+    "test:projects": "node --test scripts/test-projects.mjs scripts/test-project-store.mjs"
   },
   "dependencies": {
     "three": "^0.180.0",

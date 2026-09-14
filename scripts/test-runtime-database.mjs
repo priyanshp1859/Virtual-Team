@@ -29,7 +29,7 @@ const command = (action, input, operationId = randomUUID()) => mutateWorkspace(d
 try {
   await admin.unsafe(`CREATE SCHEMA ${schema}`);
   assert.equal((await sql`SELECT current_schema() AS schema`)[0].schema, schema, 'Never run outside the temporary test schema.');
-  for (const migration of ['001-workspace.sql', '002-runtime.sql']) await sql.unsafe(await readFile(new URL(`../db/${migration}`, import.meta.url), 'utf8'));
+  for (const migration of ['001-workspace.sql', '002-runtime.sql', '003-project-workflow.sql']) await sql.unsafe(await readFile(new URL(`../db/${migration}`, import.meta.url), 'utf8'));
   const operationId = randomUUID();
   const input = { agentId: 'sam', title: 'Runtime integration verification', brief: 'This isolated schema is removed after the checks.' };
   const [first, replay] = await Promise.all([command('createTask', input, operationId), command('createTask', input, operationId)]);

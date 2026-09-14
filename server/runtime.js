@@ -144,8 +144,8 @@ export async function runtimeTransaction(sql, callback) {
 }
 
 export async function workerHeartbeat(sql, owner, status = 'online') {
-  const rows = await sql`INSERT INTO virtual_team_worker (id, instance_id, heartbeat_at, status) VALUES ('sam', ${owner}::uuid, now(), ${status})
-    ON CONFLICT (id) DO UPDATE SET instance_id = EXCLUDED.instance_id, heartbeat_at = now(), status = EXCLUDED.status
+  const rows = await sql`INSERT INTO virtual_team_worker (id, instance_id, heartbeat_at, status, capabilities) VALUES ('sam', ${owner}::uuid, now(), ${status}, ARRAY['sam', 'project_documents'])
+    ON CONFLICT (id) DO UPDATE SET instance_id = EXCLUDED.instance_id, heartbeat_at = now(), status = EXCLUDED.status, capabilities = EXCLUDED.capabilities
     WHERE virtual_team_worker.instance_id = EXCLUDED.instance_id OR virtual_team_worker.status = 'offline' OR virtual_team_worker.heartbeat_at < now() - interval '60 seconds'
     RETURNING id`;
   if (!rows.length) conflict('Another Sam worker is already connected. Stop it before starting a second worker.');

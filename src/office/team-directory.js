@@ -1,4 +1,5 @@
 import { AGENTS, DEPARTMENTS, SKILLS, AVATAR_AGENTS } from './config.js';
+import { WORKFLOW_STEPS } from './workflow-config.js';
 import './team-directory.css';
 
 const el = (tag, className, text) => {
@@ -24,7 +25,7 @@ export function renderAgentProfile(agent, runtime) {
   summary.append(el('span', 'ap-department', department.name), el('h3', '', agent.description));
   const badges = el('div', 'ap-badges');
   if (agent.launchTeam) badges.append(el('span', 'ap-tag', 'Starter team'));
-  badges.append(el('span', 'ap-tag', agent.id === 'sam' && runtime?.enabled ? runtime.online ? 'Worker connected' : 'Worker offline' : 'Profile ready · connection pending'));
+  badges.append(el('span', 'ap-tag', agent.id === 'sam' && runtime?.enabled ? runtime.online ? 'Worker connected' : 'Worker offline' : runtime?.projectAgents?.includes(agent.id) ? runtime.projectOnline ? 'Project worker connected' : 'Project worker offline' : 'Profile ready · connection pending'));
   summary.append(badges); fragment.append(summary);
   fragment.append(el('h4', 'ap-heading', 'Responsibilities'), list(agent.responsibilities));
   fragment.append(el('h4', 'ap-heading', 'What you can expect'), list(agent.deliverables));
@@ -49,7 +50,7 @@ export function renderAgentProfile(agent, runtime) {
   return fragment;
 }
 
-export function createTeamDirectory({ store, onSelect }) {
+export function createTeamDirectory({ store, projectStore, onSelect }) {
   const dialog = el('dialog', 'team-directory'); dialog.dataset.testid = 'team-directory';
   dialog.setAttribute('aria-labelledby', 'team-directory-title');
   const header = el('header', 'td-header');
@@ -96,7 +97,9 @@ export function createTeamDirectory({ store, onSelect }) {
         const avatar = el('span', 'td-avatar', agent.name[0]); avatar.style.setProperty('--agent-color', agent.color); avatar.setAttribute('aria-hidden', 'true');
         const names = el('span'); names.append(el('strong', '', agent.name), el('span', 'td-role', agent.role)); identity.append(avatar, names);
         const tags = el('div', 'td-tags');
-        tags.append(el('span', agent.id === 'sam' && store.getState().runtime?.online ? 'td-tag connected' : 'td-tag', agent.id === 'sam' && store.getState().runtime?.online ? 'Connected' : 'Profile ready'));
+        const projectRuntime = projectStore?.getState().runtime;
+        const projectRole = WORKFLOW_STEPS.some(d => d.agentId === agent.id && projectRuntime?.capabilities?.[d.kind]);
+        tags.append(el('span', agent.id === 'sam' && store.getState().runtime?.online ? 'td-tag connected' : 'td-tag', agent.id === 'sam' && store.getState().runtime?.online ? 'Connected' : projectRole ? projectRuntime.online ? 'Project worker' : 'Worker offline' : 'Profile ready'));
         if (agent.launchTeam) tags.append(el('span', 'td-tag core', 'Starter team'));
         const skills = el('div', 'td-skill-names');
         for (const binding of agent.skills) skills.append(el('span', '', SKILLS.find(skill => skill.id === binding.id).name));

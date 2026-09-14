@@ -7,6 +7,8 @@ import postgres from 'postgres';
 import { CodexClient, clientConfiguration } from './codex-client.js';
 import { prepareRepository, collectReview, commitReview, publishReview, checkoutPath } from './repository.js';
 import { workerHeartbeat, claimRun, updateOwnedRun, getRun, addRunMessage } from '../server/runtime.js';
+import { claimProjectStep } from '../server/projects.js';
+import { runProjectJob } from './project-runner.js';
 import { getProfile, roleInstructions } from '../agent-library/profiles.js';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -191,7 +193,11 @@ try {
     await workerHeartbeat(sql, owner);
     const job = await claimRun(sql, owner);
     if (job) await runJob(job);
-    else await sleep(3000);
+    else {
+      const projectJob = await claimProjectStep(sql, owner);
+      if (projectJob) await runProjectJob({ sql, owner, job: projectJob, repository, stateDir, baseRef, settings, isStopped: () => stopped, setActiveClient: client => { activeClient = client; } });
+      else await sleep(3000);
+    }
   }
 } catch (error) {
   console.error(`Sam worker stopped: ${safeError(error)}`); process.exitCode = 1;

@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import postgres from 'postgres';
+import { createRepository } from '../server/database.js';
+import { mutateWorkspace, readWorkspace } from '../server/workspace.js';
+import { workerHeartbeat } from '../server/runtime.js';
+import { mutateProject, projectSnapshot, claimProjectStep, updateProjectClaim, loadProject } from '../server/projects.js';
+import { completeStep } from '../server/project-model.js';
+const url = process.env.DATABASE_URL;
+if (!url || new URL(url).pathname !== '/virtual_team_qa') throw new Error('Use the separate virtual_team_qa database.');
+const schema = `projects_test_${randomUUID().replaceAll('-', '')}`;
+const admin = postgres(url, { max: 1, prepare: false }), pool = postgres(url, { max: 5, prepare: false });
+async function scoped(callback) { return pool.begin(async tx => { await tx.unsafe(`SET LOCAL search_path TO ${schema}`); assert.equal((await tx`SELECT current_schema() AS name`)[0].name, schema); return callback(tx); }); }
+const sql = (...args) => scoped(tx => tx(...args)); sql.begin = (...args) => scoped(args.at(-1)); sql.json = pool.json; sql.unsafe = text => scoped(tx => tx.unsafe(text));
+const op = (action, input, operationId = randomUUID()) => ({ action, input, operationId });
+try {
+ await admin.unsafe(`CREATE SCHEMA ${schema}`);
+ for (const file of ['001-workspace.sql', '002-runtime.sql', '003-project-workflow.sql']) await sql.unsafe(await readFile(new URL(`../db/${file}`, import.meta.url), 'utf8'));
+ const repository = createRepository(sql);
+ await mutateWorkspace(repository, op('createTask', { agentId: 'sage', title: 'Preserve existing task', brief: 'Existing records must remain.' }));
+ const before = (await readWorkspace(repository)).state;
+ const command = op('create', { title: 'Project integration check', brief: 'A QA fixture; no model execution.' });
+ const [first, replay] = await Promise.all([mutateProject(sql, command), mutateProject(sql, command)]); assert.deepEqual(first, replay);
+ assert.equal((await projectSnapshot(sql)).projects.length, 1);
+ await assert.rejects(mutateProject(sql, { ...command, input: { ...command.input, title: 'Different' } }), /already used/);
+ const owner = randomUUID(); await workerHeartbeat(sql, owner);
+ const [a, b] = await Promise.all([claimProjectStep(sql, owner), claimProjectStep(sql, owner)]); const job = a || b; assert(job); assert.equal(Boolean(a) + Boolean(b), 1);
+ await assert.rejects(updateProjectClaim(sql, job.claim, p => { p.title = 'Should roll back'; throw new Error('Stop transaction'); }), /Stop transaction/);
+ assert.equal((await loadProject(sql, first.projectId)).title, 'Project integration check');
+ await updateProjectClaim(sql, job.claim, p => completeStep(p, job.claim, { title: 'PRD', body: 'QA document.', outcome: 'submitted' }));
+ const review = await claimProjectStep(sql, owner); assert.equal(review.claim.stepId, 'prd_review');
+ await updateProjectClaim(sql, review.claim, p => completeStep(p, review.claim, { title: 'Feasibility review', body: 'QA review evidence.', outcome: 'approved' }));
+ let p = (await projectSnapshot(sql)).projects[0]; assert.equal(p.steps.scope_approval.status, 'needs_approval'); assert.equal(p.steps.design_system.status, 'locked');
+ const decision = op('decide', { projectId: p.id, stepId: 'scope_approval', token: p.steps.scope_approval.token, decision: 'approved' });
+ await Promise.all([mutateProject(sql, decision), mutateProject(sql, decision)]);
+ p = (await projectSnapshot(sql)).projects[0]; assert.equal(p.steps.design_system.status, 'queued'); assert.equal(p.artifacts.filter(a => a.authorId === 'owner').length, 1);
+ assert.deepEqual((await readWorkspace(repository)).state, before);
+ assert.equal((await projectSnapshot(sql)).runtime.online, true);
+ console.log('PASS: real database idempotency, exclusive claims, rollback, independent handoff, exact approval, queue progression and preservation of existing tasks.');
+} finally { await pool.end(); await admin.unsafe(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); await admin.end(); }
