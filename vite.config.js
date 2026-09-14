@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export default defineConfig(({ mode }) => ({
+  css: { postcss: {} },
   plugins: [{
     name: 'virtual-team-local-api',
     configureServer(server) {
