@@ -64,7 +64,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   let agentId = 'sam'; let tab = 'chat'; let opened = false; let disposed = false;
   let returnFocus = null; let presence = null; let reviewTarget = null;
   let composerKey = ''; let formAgent = ''; let feedbackKey = '';
-  let logSignature = ''; let taskSignature = ''; let reviewSignature = ''; let contextSignature = '';
+  let logSignature = ''; let logConversation = ''; let taskSignature = ''; let reviewSignature = ''; let contextSignature = '';
   let pending = false;
   const selectedTasks = new Map(); const drafts = new Map(); const taskDrafts = new Map(); const feedbackDrafts = new Map();
   const agent = () => AGENTS.find(item => item.id === agentId);
@@ -269,6 +269,9 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     const signature = JSON.stringify([agentId, task?.id, messages, execution, agentOnline(), snapshot.storageAvailable]);
     if (signature === logSignature) return;
     logSignature = signature;
+    const conversation = `${agentId}:${task?.id || 'general'}`;
+    const changedConversation = conversation !== logConversation;
+    logConversation = conversation;
     const wasNearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
     log.replaceChildren();
     if (!messages.length) {
@@ -290,7 +293,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       if (task) item.setAttribute('aria-label', `${who}, ${task.title}`);
       log.append(item);
     }
-    if (wasNearBottom || messages.at(-1)?.role === 'user') log.scrollTop = log.scrollHeight;
+    if (changedConversation || wasNearBottom || messages.at(-1)?.role === 'user') log.scrollTop = log.scrollHeight;
   }
   function renderTasks(agentTasks) {
     const signature = JSON.stringify([agentId, selectedTasks.get(agentId), agentTasks, snapshot.storageAvailable]);
@@ -458,7 +461,9 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     if (taskId !== undefined) selectedTasks.set(agentId, taskId || null);
     if (nextTab && TABS.includes(nextTab)) tab = nextTab;
     else if (!opened) tab = 'chat';
-    opened = true; mount.hidden = false; clearError(); render(); if (focus) name.focus({ preventScroll: true });
+    opened = true; mount.hidden = false; clearError(); render();
+    if (tab === 'chat') log.scrollTop = log.scrollHeight;
+    if (focus) name.focus({ preventScroll: true });
     if (newTask) showTaskForm();
     return true;
   }
@@ -477,7 +482,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       close(); selectedTasks.clear(); drafts.clear(); taskDrafts.clear(); feedbackDrafts.clear();
       composer.value = ''; titleInput.value = ''; briefInput.value = ''; feedback.value = '';
       composerKey = ''; formAgent = ''; feedbackKey = ''; reviewTarget = null; returnFocus = null;
-      logSignature = ''; taskSignature = ''; reviewSignature = ''; contextSignature = '';
+      logSignature = ''; logConversation = ''; taskSignature = ''; reviewSignature = ''; contextSignature = '';
       log.replaceChildren(); taskList.replaceChildren(); reviewContent.replaceChildren(); clearError();
       snapshot = store.getState(); render();
     },
