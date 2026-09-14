@@ -1,0 +1,20 @@
+{
+  "name": "virtual-team",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "22.x" },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node scripts/test-office-workspace.mjs && node scripts/test-office.mjs && node --test scripts/test-api.mjs scripts/test-cloud-store.mjs",
+    "db:migrate": "node server/migrate.js",
+    "test:api": "node --test scripts/test-api.mjs",
+    "test:cloud": "node --test scripts/test-cloud-store.mjs",
+    "test:workspace": "node scripts/test-office-workspace.mjs",
+    "test:office": "node scripts/test-office.mjs"
+  },
+  "dependencies": { "three": "^0.180.0", "postgres": "^3.4.7" },
+  "devDependencies": { "vite": "^7.3.6" }
+}

@@ -1,0 +1,38 @@
+.work-summary{flex:none;margin-bottom:16px;border:1px solid #e1e4d7;border-radius:9px;background:#fafaf5}
+.work-summary-row{min-height:55px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 11px}
+.work-counts{display:flex;align-items:center;flex:1;gap:3px;min-width:0}
+.work-count{display:flex;align-items:center;justify-content:center;gap:7px;flex:1;padding:8px 6px;border-radius:5px;white-space:nowrap;color:#868c7c;font-size:10px}
+.work-count:hover,.work-count[aria-pressed=true]{background:#edf0e5;color:#4c6044}
+.work-count strong{font-size:15px;font-weight:550;color:#4e5b47;font-variant-numeric:tabular-nums}
+.work-count-dot{width:5px;height:5px;border-radius:50%;background:#a4aa97}
+.work-count.working .work-count-dot{background:#77958c}.work-count.attention .work-count-dot{background:#bd9968}.work-count.review .work-count-dot{background:#9890ad}
+.work-queue-toggle{font-size:10px;color:#536b4b;display:flex;align-items:center;gap:9px;padding:10px;border-left:1px solid #e4e7db;white-space:nowrap}
+.work-queue-toggle:hover{background:#edf0e5;border-radius:4px}
+.work-queue-heading{display:flex;align-items:center;justify-content:space-between;padding:17px 18px 12px;border-top:1px solid #e4e7da}
+.work-queue-heading h2{margin:0;font-size:14px;font-weight:550;color:#45553e}
+.work-queue-heading p{font-size:10px;line-height:1.5;color:#929783;margin:5px 0 0}
+.queue-new-task{font-size:10px;padding:8px 10px;border-radius:5px;background:#e9eddf;color:#536a48;white-space:nowrap}
+.queue-new-task:hover{background:#dde6d0}
+.work-queue-filters{display:flex;gap:4px;padding:0 16px 12px;flex-wrap:wrap}
+.work-queue-filters button{border:1px solid transparent;border-radius:16px;padding:5px 9px;font-size:9px;color:#8b927e}
+.work-queue-filters button[aria-pressed=true]{border-color:#ced9bf;background:#edf2e5;color:#506743}
+.work-queue-list{max-height:232px;overflow:auto;border-top:1px solid #e5e8db;padding:4px 12px}
+.work-queue-task{display:flex;align-items:center;gap:11px;width:100%;padding:12px 5px;text-align:left;border-bottom:1px solid #eceee4}
+.work-queue-task:last-child{border-bottom:0}.work-queue-task:hover{background:#f0f2e9;border-radius:5px}
+.queue-avatar{display:grid;place-items:center;width:29px;height:29px;flex:none;border-radius:50%;background:color-mix(in srgb,var(--agent-color) 15%,#f9f8ef);color:var(--agent-color);font-family:'Instrument Serif',Georgia,serif;font-size:19px}
+.queue-task-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.queue-task-copy strong{font-size:11px;font-weight:500;color:#59664f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.queue-task-copy small{font-size:9px;color:#949b86}
+.queue-status{font-size:9px;color:#7f8872;border-radius:4px;background:#edf0e7;padding:5px 7px;white-space:nowrap;flex:none}
+.queue-status.in_review{color:#7c7295;background:#f0edf5}.queue-status.waiting_for_user,.queue-status.changes_requested{color:#977446;background:#f6f0e5}.queue-status.completed{color:#628454;background:#eaf2e5}
+.work-queue-empty{font-size:11px;color:#929b84;text-align:center;padding:18px 10px}
+.agent-task-count{min-width:17px;height:17px;display:grid;place-items:center;font-size:9px;font-weight:550;border-radius:5px;background:#e5eada;color:#627453;margin-left:auto}
+.agent-task-count.needs-attention{background:#f1e8d7;color:#96703e}
+.team-member:has(.agent-task-count:not([hidden])) .person-presence{margin-left:0}
+.person-presence.disconnected{background:#bbc1b1}
+#office-app.workspace-panel-open .stage{min-height:500px}
+#office-app.workspace-panel-open .office-content{padding-left:24px;padding-right:24px}
+#office-app.workspace-panel-open .page-heading{gap:12px}
+#office-app.workspace-panel-open .page-heading h1{font-size:31px}
+@media(min-width:1280px){#office-app.workspace-panel-open .stage-top-right{top:31px;right:20px;font-size:8px}#office-app.workspace-panel-open .page-heading p{font-size:10px}}
+@media(max-width:1100px){.work-count{gap:5px;font-size:9px;padding-left:4px;padding-right:4px}.work-counts{gap:0}.work-summary-row{padding-left:6px;padding-right:6px}.work-queue-toggle{padding-left:7px;padding-right:7px;font-size:9px;gap:5px}.work-count-dot{display:none}}

@@ -1,0 +1,22 @@
+/* One desktop workspace on computers and tablets. Smaller viewports retain
+   this layout instead of switching to a separate phone interface. */
+#office-app {
+  min-width: 768px;
+}
+
+@media (max-width: 1100px) {
+  #office-app .sidebar {
+    width: 200px;
+    flex-basis: 200px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  #office-app .wordmark { font-size: 30px; }
+  #office-app .workspace-label { font-size: 7px; letter-spacing: 1.1px; }
+  #office-app .office-content { padding-left: 20px; padding-right: 20px; }
+  #office-app .page-heading h1 { font-size: 31px; }
+  #office-app .prototype-note { max-width: 190px; text-align: right; line-height: 1.5; }
+  #office-app .topbar { padding: 0 23px; }
+  #office-app .stage { min-height: 540px; }
+}

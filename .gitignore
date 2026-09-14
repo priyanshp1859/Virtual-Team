@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.vercel/
+.agents/
+skills-lock.json
+.env*
+!.env.example
+.DS_Store
+test-results/
+playwright-report/
+*.log
+.vercel
