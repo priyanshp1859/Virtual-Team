@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { ROOMS, AGENTS } from './config.js';
+import { ROOMS, AGENTS, AVATAR_AGENTS, DEPARTMENTS } from './config.js';
+import { createTeamDirectory } from './team-directory.js';
 import { createEnvironment } from './environment.js';
 import { createPeople } from './people.js';
 import './style.css';
@@ -29,7 +30,12 @@ const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name
 document.querySelectorAll('[data-icon]').forEach((el) => el.innerHTML = icon(el.dataset.icon));
 
 $('rooms-list').innerHTML = ROOMS.map(room => `<button class="room-nav" data-room="${room.id}" style="--room-color:${room.color}" aria-label="Focus ${room.name}">${icon(room.id)}<span>${room.name}</span><span class="count">${AGENTS.filter(a => a.room === room.id).length.toString().padStart(2, '0')}</span></button>`).join('');
-$('team-list').innerHTML = AGENTS.map(a => `<button class="team-member" data-agent="${a.id}" aria-label="Select ${a.name}, ${a.role}"><span class="person-icon" style="--person-color:${a.color}" aria-hidden="true"></span><span class="person-copy"><span class="person-name">${a.name}</span><span class="person-role">${a.role}</span></span><span class="person-presence ${a.room === 'chill' ? 'idle' : ''}" aria-label="${a.room === 'chill' ? 'Available' : 'At desk'}"></span></button>`).join('');
+$('team-count').textContent = String(AGENTS.length).padStart(2, '0');
+const teamButton = a => `<button class="team-member" data-agent="${a.id}" aria-label="Select ${a.name}, ${a.role}"><span class="person-icon" style="--person-color:${a.color}" aria-hidden="true"></span><span class="person-copy"><span class="person-name">${a.name}</span><span class="person-role">${a.role}</span></span><span class="person-presence disconnected" aria-label="Connection pending"></span></button>`;
+$('team-list').innerHTML = DEPARTMENTS.map(department => {
+  const members = AGENTS.filter(agent => agent.department === department.id);
+  return `<details class="team-department" data-team-department="${department.id}" ${['leadership', 'engineering'].includes(department.id) ? 'open' : ''}><summary>${department.name}<span class="team-department-count">${members.length}</span></summary>${members.map(teamButton).join('')}</details>`;
+}).join('');
 
 function updateClock() {
   $('local-time').textContent = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date());
@@ -57,6 +63,8 @@ const agentPanel = createAgentPanel({
   onClose: clearSelection,
   onSelectAgent: (id, options) => selectAgent(id, false, options),
 });
+const teamDirectory = createTeamDirectory({ store: workspace, onSelect: id => selectAgent(id, false, { tab: 'profile' }) });
+$('team-directory-button').addEventListener('click', () => teamDirectory.open());
 createWorkspaceOverview({
   mount: $('work-summary'),
   store: workspace,
@@ -87,7 +95,7 @@ function showCloudState(state) {
     else resize();
     selectAgent('sam', false, { focus: false });
   } else if (!ready && openedWorkspace) {
-    openedWorkspace = false; clearSelection(); agentPanel.reset();
+    openedWorkspace = false; teamDirectory.close(); clearSelection(); agentPanel.reset();
   }
   cloudToolbar.hidden = !ready;
   cloudStatus.textContent = { loading: 'Loading…', ready: 'Saved to cloud', saving: 'Saving…', error: 'Sync needs attention' }[state.connectionStatus];
@@ -158,7 +166,7 @@ function overview() {
 function updateTeamTasks() {
   const { tasks, runtime } = workspace.getState();
   const prototypeNote = document.querySelector('.prototype-note');
-  if (prototypeNote) prototypeNote.textContent = runtime?.enabled ? `Sam ${runtime.online ? 'connected' : 'offline'} · other agents and meetings are previews.` : 'Office preview · no live agents or microphone.';
+  if (prototypeNote) prototypeNote.textContent = runtime?.enabled ? `Sam ${runtime.online ? 'connected' : 'offline'} · 19 profiles ready · meetings are previews.` : 'Office preview · no live agents or microphone.';
   AGENTS.forEach(agent => {
     const button = document.querySelector(`#team-list [data-agent="${agent.id}"]`);
     const assigned = tasks.filter(task => task.agentId === agent.id && task.status !== 'completed');
@@ -190,7 +198,9 @@ function selectAgent(id, focus = true, panelOptions = {}) {
   agentPanel.open(id, panelOptions);
   agentPanel.setPresence(currentState);
   $('office-app').classList.add('workspace-panel-open');
-  selectionRing.visible = true;
+  selectionRing.visible = AVATAR_AGENTS.some(agent => agent.id === id);
+  const departmentGroup = document.querySelector(`#team-list [data-agent="${id}"]`)?.closest('details');
+  if (departmentGroup) departmentGroup.open = true;
   if (focus) {
     const person = people?.agents.find(p => p.id === id);
     const pos = person?.group.position;
@@ -217,11 +227,11 @@ function onStateChange(state) {
   $('meeting-button').querySelector('span:nth-child(2)').textContent = currentState.moving ? (meeting ? 'Gathering…' : 'Heading back…') : meeting ? 'End meeting' : 'Call a meeting';
   $('meeting-button').setAttribute('aria-pressed', String(meeting));
   $('meeting-banner').hidden = !meeting;
-  $('meeting-number').textContent = `${arrived} / ${AGENTS.length}`;
+  $('meeting-number').textContent = `${arrived} / ${AVATAR_AGENTS.length}`;
   $('meeting-title').textContent = currentState.moving ? 'Let’s get everyone together.' : 'Everyone’s here.';
-  $('meeting-description').textContent = currentState.moving ? 'Your team is heading to the meeting room.' : currentState.agents.every(a => a.laptopState === 'open') ? 'Laptops open. Ready to think together.' : 'Getting settled and opening laptops.';
+  $('meeting-description').textContent = currentState.moving ? 'The six seated office avatars are heading to the meeting room.' : currentState.agents.every(a => a.laptopState === 'open') ? 'Laptops open. Ready to think together.' : 'Getting settled and opening laptops.';
   $('world-status').textContent = meeting ? (currentState.moving ? 'A meeting is coming together.' : 'Everyone is ready at the table.') : currentState.moving ? 'Back to a little work. And a little life.' : 'A little work. A little life.';
-  $('footer-status').textContent = meeting ? `${arrived} of ${AGENTS.length} teammates at the table` : currentState.moving ? 'The team is heading back to their spaces' : '6 teammates · 6 spaces · endless possibilities';
+  $('footer-status').textContent = meeting ? `${arrived} of ${AVATAR_AGENTS.length} office avatars at the table` : currentState.moving ? 'The team is heading back to their spaces' : `${AGENTS.length} agents · ${DEPARTMENTS.length} departments · ${AVATAR_AGENTS.length} office seats`;
   ROOMS.forEach(room => {
     const count = currentState.agents.filter(a => a.room === room.id && a.state !== 'walking').length;
     const el = document.querySelector(`[data-room="${room.id}"] .count`);

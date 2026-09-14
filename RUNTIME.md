@@ -24,6 +24,12 @@ The office shows worker connection status. Sam requires this computer to be awak
 
 Optional worker settings: `SAM_STATE_DIR` changes the private checkout/log directory; `SAM_BASE_REF` defaults to `origin/main`; `SAM_REASONING_EFFORT` overrides the configured Codex effort. `SAM_ENV_FILE` chooses a different private settings file. For QA, use a separate database and state directory, and disable publication unless testing an explicitly reviewed pull request.
 
+## Role and skill references
+
+The full roster is documented in [AGENT_TEAM.md](AGENT_TEAM.md). Only Sam is connected to this worker. His authored profile is injected into each new Codex thread with entrypoint paths for `fullstack-guardian`, `javascript-pro` and `test-master`. Sam reads a package only when it is relevant. The worker exposes these three host package directories read-only, so earlier isolated checkouts can use the reviewed references without modifying their saved code. Other packages are not granted host filesystem access.
+
+Role instructions keep project guidance and existing tools authoritative: upstream Jest, tool invocation, deployment and delegation examples do not change this application's stack or permissions. Bundled helpers are reference assets; installation does not run them. Additional role profiles are ready for later runtime configuration and do not start extra worker processes.
+
 ## Boundaries
 
 The worker uses a named Codex permission profile with restricted reads and writes, no network for agent commands, no external MCP servers or app integrations, and read-only Git metadata. It verifies that a private canary is unreadable before starting a turn. Application/database credentials are excluded from the child environment. Codex still contacts its model service using the owner's sign-in outside the command sandbox.

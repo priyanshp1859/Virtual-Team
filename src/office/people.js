@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { AGENTS } from './config.js';
+import { AVATAR_AGENTS as AGENTS } from './config.js';
 import { OFFICE_LAYOUT } from './layout.js';
 
 /** Miniature people and local choreography. These states are a visual prototype. */

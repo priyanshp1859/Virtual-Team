@@ -1,0 +1,801 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "id": "coo-advisor",
+      "repository": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "sourcePath": "c-level-advisor/skills/coo-advisor",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "f7f47376610ef7a280be4af34a3816adb9225a24d6af52e148a4808b13c6df64"
+        },
+        {
+          "path": "references/ops_cadence.md",
+          "sha256": "969b3ea9c941c734648273449d292be8a1c1494b2c1594cff5e2188056c65977"
+        },
+        {
+          "path": "references/process_frameworks.md",
+          "sha256": "e8dcb785c783e0f3fe53e608dab5b6ccac0b6f622060b91c257a3c4ed7b76280"
+        },
+        {
+          "path": "references/scaling_playbook.md",
+          "sha256": "123a4f66b5d09f9cb43aaa885ad8d90dc30dbd055374f218fb121b45499ba5fa"
+        },
+        {
+          "path": "scripts/okr_tracker.py",
+          "sha256": "a9fa517416e16f56ddd0e2b624e622f257e39143e47c0ed992f25559d30ead25"
+        },
+        {
+          "path": "scripts/ops_efficiency_analyzer.py",
+          "sha256": "e145a92aa8dd3a89a3d16fd3963b1a94f9932254e4da6600be6d552a332b96e7"
+        }
+      ]
+    },
+    {
+      "id": "product-manager-toolkit",
+      "repository": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "sourcePath": "product-team/skills/product-manager-toolkit",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "cb8e692dc9f0c51a64ed592e093af4aeabd999751ff0012d6d4beee59b74df77"
+        },
+        {
+          "path": "assets/prd_template.md",
+          "sha256": "8cca95e7a6d7cbdd75cbad2d7c545fc9651b50ee8ec133f8f288d9b44255f186"
+        },
+        {
+          "path": "assets/rice_input_template.csv",
+          "sha256": "e112d1f5b1cfddffeb753cc6209f9c319fca9a353d410d0675a0ef7a3511ed71"
+        },
+        {
+          "path": "references/frameworks.md",
+          "sha256": "6ce2eb6a15bc67040d16fdd4bcc0f2ef3c37f384d19b7dcdfa2065c7f4ee324d"
+        },
+        {
+          "path": "references/input-output-examples.md",
+          "sha256": "2bd22268392286df74a35a1be774dfd9bb632a0a369e6a90ad1bd1cef32471fe"
+        },
+        {
+          "path": "references/prd_templates.md",
+          "sha256": "cd0d50ea82142ad801e2cd5a9c1a7ce88ce024259df7da15923b9d6bf2d3c85d"
+        },
+        {
+          "path": "scripts/customer_interview_analyzer.py",
+          "sha256": "ccf0efcca639b2506f6205da759df6171f4df338ac09c64ea8f5e3776645c7c5"
+        },
+        {
+          "path": "scripts/rice_prioritizer.py",
+          "sha256": "9ceb1964ebb949f6aaa7afda9651cd8d4ea1502df2fe58ed9e8cceb080a3f043"
+        }
+      ]
+    },
+    {
+      "id": "ui-design-system",
+      "repository": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "sourcePath": "product-team/skills/ui-design-system",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "7f8c1714af2602bcd2b3b49b6aaf0f53351fb739b26062d548f6a9c8c1b10e8d"
+        },
+        {
+          "path": "assets/design_system_doc_template.md",
+          "sha256": "72d63dc806219b550a451564b7e10659cf643677295e4c1cfdcc0fbe0a914b5c"
+        },
+        {
+          "path": "references/component-architecture.md",
+          "sha256": "4cf363aa2e206dc05c3e07c0f0b4ba1b11fda1fad10ba471b6e84ab9e7a85b84"
+        },
+        {
+          "path": "references/developer-handoff.md",
+          "sha256": "14087541aa4b8f897391c88737629dff403a6565463bdf3f5e27f5860f29a875"
+        },
+        {
+          "path": "references/responsive-calculations.md",
+          "sha256": "f15fcf793ef2147c9470f0b8b8b712321cd4a5bcd2f64bed3d942f30fbc20eb7"
+        },
+        {
+          "path": "references/token-generation.md",
+          "sha256": "4a96787e57c40d7bf1a05b1f3348e3b7221cff4d4e11e0f9650f0a1681b29aa1"
+        },
+        {
+          "path": "scripts/design_token_generator.py",
+          "sha256": "db3632fda4a1c6979262df989ab3a729e29c8f47a1423820e9579e14320b4a67"
+        }
+      ]
+    },
+    {
+      "id": "ux-researcher-designer",
+      "repository": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "sourcePath": "product-team/skills/ux-researcher-designer",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "e19ce820e246bf34834e99ea361afcf93fb780ffbb2a4248b32a9947ae4a43ca"
+        },
+        {
+          "path": "assets/research_plan_template.md",
+          "sha256": "9ad59b152028118baf4959df2a9b981704731254849c973659074b8297493a4d"
+        },
+        {
+          "path": "references/example-personas.md",
+          "sha256": "e2f8d8a65f3c1c4d4be0edc03db3e382592b03c51946bdcba610984da99e9750"
+        },
+        {
+          "path": "references/journey-mapping-guide.md",
+          "sha256": "27059750646dfbbc036dd5d647df70d63591afa1a5454de3326fb9ad672b81ac"
+        },
+        {
+          "path": "references/persona-methodology.md",
+          "sha256": "a31e7a35880af5d7768f337f165dab9168a88016fed91e39f187cfa9c2fc1e5f"
+        },
+        {
+          "path": "references/usability-testing-frameworks.md",
+          "sha256": "0a71d1fc59676df7d005f6bdc42e09ed94e924b6ef98837f5877f0bf3fc31676"
+        },
+        {
+          "path": "scripts/persona_generator.py",
+          "sha256": "1bf61ff38178e605e5d553262b02e4942a52a18292c88eddb6326f82b57d2b70"
+        }
+      ]
+    },
+    {
+      "id": "frontend-design",
+      "repository": "anthropics/skills",
+      "commit": "34040c9c568585f6929bedeaad110ad08f079624",
+      "sourcePath": "skills/frontend-design",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
+        }
+      ]
+    },
+    {
+      "id": "webapp-testing",
+      "repository": "anthropics/skills",
+      "commit": "34040c9c568585f6929bedeaad110ad08f079624",
+      "sourcePath": "skills/webapp-testing",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2"
+        },
+        {
+          "path": "examples/console_logging.py",
+          "sha256": "ea46877289acb82da7e7ce59d0bc37c8977cd57e2a006d0c88d7a1c625bf95da"
+        },
+        {
+          "path": "examples/element_discovery.py",
+          "sha256": "d63c89604a22f8845d724e95dda45db49b1bf57c25ce0a83afbb7b8da3d402f0"
+        },
+        {
+          "path": "examples/static_html_automation.py",
+          "sha256": "9d533aafb875ee3ab8b8ebf8f5b9003ac8d999da3d09b285cce252e623140064"
+        },
+        {
+          "path": "scripts/with_server.py",
+          "sha256": "b0dcf4918935b795f4eda9821579b9902119235ff4447f687a30286e7d0925fd"
+        }
+      ]
+    },
+    {
+      "id": "animate",
+      "repository": "emilkowalski/skills",
+      "commit": "d23d7f88a2e21c9e4b1418c7abe420f5c1052ba7",
+      "sourcePath": "skills/animate",
+      "files": [
+        {
+          "path": "RECIPES.md",
+          "sha256": "21ff63d84391db8d96ecdf9170095f55a42c836ccc36fd3269c4772bab031ba2"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "f6317335da2662e92270dc0a6128bea95d7216cd751f86628e3ac6b72804e805"
+        }
+      ]
+    },
+    {
+      "id": "review-animations",
+      "repository": "emilkowalski/skills",
+      "commit": "d23d7f88a2e21c9e4b1418c7abe420f5c1052ba7",
+      "sourcePath": "skills/review-animations",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "61cf8ac0c4c8e1f63385298c546b16c65ca9aec34abddcd04e821c16712d671d"
+        },
+        {
+          "path": "STANDARDS.md",
+          "sha256": "e7d3605034acda54ca13e43aec9e64d65b53de20f75b11b8d694e373012fbe07"
+        }
+      ]
+    },
+    {
+      "id": "web-design-guidelines",
+      "repository": "vercel-labs/agent-skills",
+      "commit": "063bee94c3f4df8453406c830b0a7df0f2860278",
+      "sourcePath": "skills/web-design-guidelines",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
+        }
+      ]
+    },
+    {
+      "id": "deploy-to-vercel",
+      "repository": "vercel-labs/agent-skills",
+      "commit": "063bee94c3f4df8453406c830b0a7df0f2860278",
+      "sourcePath": "skills/deploy-to-vercel",
+      "files": [
+        {
+          "path": "Archive.zip",
+          "sha256": "37c0d035b3d2c6256105316a2492c1487f3688efa21f030a8a623a9f7f0ee02f"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "cfcc3dd479ab2e0ae721ddf39b8af84d977321487672f1487c8d6855f576927b"
+        },
+        {
+          "path": "resources/deploy-codex.sh",
+          "sha256": "18b411e2bfe07778bca11d7f0e1ec9c95e5764011dd2e3838f51066728646855"
+        },
+        {
+          "path": "resources/deploy.sh",
+          "sha256": "418da6ff48c582790799d850a88fd83ca00f2ee00502665caf8dbb06d4dab8b9"
+        }
+      ]
+    },
+    {
+      "id": "neon-postgres",
+      "repository": "neondatabase/agent-skills",
+      "commit": "2e0da3a1653bcdd227565ac14bb3e9e453a8b854",
+      "sourcePath": "skills/neon-postgres",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "84de1bb89fc9844c751ad733719e688d38d808be9657a96d30798ea15040ac3e"
+        },
+        {
+          "path": "references/full-text-search.md",
+          "sha256": "025d4380ccfe8e2c745687d82ed6182d501d5678a3941112f37f58bac38e7db4"
+        },
+        {
+          "path": "references/hybrid-search.md",
+          "sha256": "80b9b1a9974c41eea80bfa4159c5be2b89ca0caaf96b06356ce60d49b2443f90"
+        },
+        {
+          "path": "references/vector-search.md",
+          "sha256": "4d7c14f1940033e2c379be62f00ef5ba5e17878a44bc11957a5176f91c2aa0ac"
+        }
+      ]
+    },
+    {
+      "id": "feature-forge",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/feature-forge",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "3c8b8c363767177e39262b229be0285779816ed251c8bd658073efc3cda0f1c6"
+        },
+        {
+          "path": "references/acceptance-criteria.md",
+          "sha256": "4b01424260442368aa96139a31b682cd346fcb27910fb319803e3e32d99789e7"
+        },
+        {
+          "path": "references/ears-syntax.md",
+          "sha256": "a85e1f251ad7ff5222015916530ecd5817998c99dab9b3e9c4b362f1eb88038d"
+        },
+        {
+          "path": "references/interview-questions.md",
+          "sha256": "5934ce65f215ad15cbd220f130883f66bffc9049ba7f4d9cfc906ab7ee60fc7a"
+        },
+        {
+          "path": "references/pre-discovery-subagents.md",
+          "sha256": "b47a1ae4861ac654f4e5ecefc1f75b18136d515e9a10153e006a42c1f42e9589"
+        },
+        {
+          "path": "references/specification-template.md",
+          "sha256": "a2f10accbb75c835f39459765e077c6651d7eb56f5cc91f3b6e575c35e142c91"
+        }
+      ]
+    },
+    {
+      "id": "architecture-designer",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/architecture-designer",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "5235b031e8fadacf01f39ad9db7b8d5ec9d6f83460ebcef78da95d31c9f36276"
+        },
+        {
+          "path": "references/adr-template.md",
+          "sha256": "cada2aa2f8fa039ba63ab95499cbe653a28110f9f406040a06966552026fea4b"
+        },
+        {
+          "path": "references/architecture-patterns.md",
+          "sha256": "954bde741cffe6dec00acb63840bbb79654d2647ca8f7c9a8f99f5888b94c5f9"
+        },
+        {
+          "path": "references/database-selection.md",
+          "sha256": "6439a36138654947acb808eeff1fff5862894ef94a7210e8fd540bb2641c5a80"
+        },
+        {
+          "path": "references/nfr-checklist.md",
+          "sha256": "37b9b0f083bd224acccb04eec86edc09a494c693a4ad0ec32ea24f472c122d70"
+        },
+        {
+          "path": "references/system-design.md",
+          "sha256": "b33ff621c6461eb321d18fc9923c4bba689776e1cd0f0c00945584c2698319a1"
+        }
+      ]
+    },
+    {
+      "id": "api-designer",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/api-designer",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "75a1d0df12641ef02803a1c8dba1e079f0b4cd7b238dd53ab4c257fad5b49e93"
+        },
+        {
+          "path": "references/error-handling.md",
+          "sha256": "f4f53b35360da99e4abd5edc86e53d1a34adc77f5172fa7ba8c50acff8df9c87"
+        },
+        {
+          "path": "references/openapi.md",
+          "sha256": "cef05ac175cb3f69e3ff247fba5b05838229d3644ad7f9f4e53b1eff1750988f"
+        },
+        {
+          "path": "references/pagination.md",
+          "sha256": "6f12180b54539525048610ab2cbc22a3c09792623f4b64be85b4cb335213ea6b"
+        },
+        {
+          "path": "references/rest-patterns.md",
+          "sha256": "d1d493065f10387a5c9198ea5c0c1d45c7757daf188aff763e582f342c8ce21b"
+        },
+        {
+          "path": "references/versioning.md",
+          "sha256": "7abc655037778fbf09a575f7b245a18710d49a11e340ca0eee62e97fcd76a034"
+        }
+      ]
+    },
+    {
+      "id": "fullstack-guardian",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/fullstack-guardian",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "22a1c39c86be63fafce6e2aaa5b667a588de346c359dbb67231e75d5c0fe990c"
+        },
+        {
+          "path": "references/api-design-standards.md",
+          "sha256": "7c2cb846a14c312d9042b560aea38dcb47e405a6dfb17e8eef63a24caf1b3af4"
+        },
+        {
+          "path": "references/architecture-decisions.md",
+          "sha256": "9cc7722d6dc0cd3e5e8897dcd5206db3a71ae656b51990b76d998ad884fa0a5a"
+        },
+        {
+          "path": "references/backend-patterns.md",
+          "sha256": "82264065150f04d36c2cfa5e7003698b78759cafd6213ad0beb12b5ebcd0e3ca"
+        },
+        {
+          "path": "references/common-patterns.md",
+          "sha256": "941030050a8ab34fab523b2f1ddc83dc3da24613c8b063f2342c87c9e21b80d0"
+        },
+        {
+          "path": "references/deliverables-checklist.md",
+          "sha256": "c5ccd2800d6d55c8a00fc9e8f1ef5b3e999d98611381866c5e5f9bb4dd74693c"
+        },
+        {
+          "path": "references/design-template.md",
+          "sha256": "9a5a7cc58b0485c5641e49b5bc1bb01ae5a635e028521949b2a4917a8b371691"
+        },
+        {
+          "path": "references/error-handling.md",
+          "sha256": "41b940665960b9e55dbba72768acfa72d8a45cbe4d19b53662ca3dc7ea39c766"
+        },
+        {
+          "path": "references/frontend-patterns.md",
+          "sha256": "fc4b8676f066f92c50ce0294903ad53f0259a418f9e587a202e5090558e04c11"
+        },
+        {
+          "path": "references/integration-patterns.md",
+          "sha256": "68e8ed7111f95ade940b983353210bd8f062196a0fb640fc3a81191558afd201"
+        },
+        {
+          "path": "references/security-checklist.md",
+          "sha256": "5d943e6a3a8f3c34dccae234be4a61b92eeac9164ca568ea013516465f7f67bf"
+        }
+      ]
+    },
+    {
+      "id": "code-reviewer",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/code-reviewer",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "8f0ddb7d90178b6986f8d597ab0bc93ec01adb044bd27b75e1682b06902dae93"
+        },
+        {
+          "path": "references/common-issues.md",
+          "sha256": "19de3ccd5611e82d1c94636aaf4b0a11a68a09799459285a3ab250a24c04265c"
+        },
+        {
+          "path": "references/feedback-examples.md",
+          "sha256": "e87d7a255efaa04a8ee6acfa53f642974c4b2919658671418e670d0db7d038f6"
+        },
+        {
+          "path": "references/receiving-feedback.md",
+          "sha256": "62f3958b0be7f3d03cde7bbf00d3f6051a6d98081be3e97d2e7cca5501749c04"
+        },
+        {
+          "path": "references/report-template.md",
+          "sha256": "2f2b63c8543b510d4dceffb9336627d02aa5f6f722a805d6fa93572d7673a885"
+        },
+        {
+          "path": "references/review-checklist.md",
+          "sha256": "c0e348f3896a274c407da7bf52570377dd9b7d0d3284d8f582559d890c3dfbcc"
+        },
+        {
+          "path": "references/spec-compliance-review.md",
+          "sha256": "a5fcb93e7058b4c089b871ae954d8ab5cf45702e91c54242b06cf7af455f57df"
+        }
+      ]
+    },
+    {
+      "id": "javascript-pro",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/javascript-pro",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "fb73d05454525647884f3aae73ec831fad4efc3c128a1a584bf6d97e73b35e15"
+        },
+        {
+          "path": "references/async-patterns.md",
+          "sha256": "0a4e9a195d3f7f2d4e8b6c8a8c8a80c886733968e5d6aa3043900ae7975d8f52"
+        },
+        {
+          "path": "references/browser-apis.md",
+          "sha256": "169bd23e862339654016ae52259597aca3cfb505bbf7e359f7648ef6e61845d7"
+        },
+        {
+          "path": "references/modern-syntax.md",
+          "sha256": "88c6cb7b863067c364a5d4242c0a187098bdec50c4c05efb0ab9f90aedf3314f"
+        },
+        {
+          "path": "references/modules.md",
+          "sha256": "d6fc9198f0ea7e2342d0927a524f98664ada8084a039fe70b1cc7abda0cf9af3"
+        },
+        {
+          "path": "references/node-essentials.md",
+          "sha256": "d8863b3776d74816ba4855da31932198571484a295126a24bdaebeb3edf61729"
+        }
+      ]
+    },
+    {
+      "id": "playwright-expert",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/playwright-expert",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "d6c5c04e570659a902e7c212067116131743e588af16406672fab58f0f62d8e1"
+        },
+        {
+          "path": "references/api-mocking.md",
+          "sha256": "e4f788c6355a79c9baa21b232f55788cc80620d735d29d43dea62667120fde45"
+        },
+        {
+          "path": "references/configuration.md",
+          "sha256": "f65f5eb5a91d3a13dafb845026ee07f41353e3b82bbb6def4fc7054e55b6f2aa"
+        },
+        {
+          "path": "references/debugging-flaky.md",
+          "sha256": "e559423dad74e5c384ba3de0a1c0db8d7f7723bd1a19cdc46f25b0f7622d5627"
+        },
+        {
+          "path": "references/page-object-model.md",
+          "sha256": "6df65f98c1ea3b954fee2ef68d2697e2ad3fe280809cd75c8f89873d38200be2"
+        },
+        {
+          "path": "references/selectors-locators.md",
+          "sha256": "659941eebd0f53ecde7dba938ec035d76673b6b0bb7cba06441a06e46922e134"
+        }
+      ]
+    },
+    {
+      "id": "devops-engineer",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/devops-engineer",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "078f8e80c432f1cbaa7aaa70391a8d61c2b87cc71f2f64f361da61b13c19d9cf"
+        },
+        {
+          "path": "references/deployment-strategies.md",
+          "sha256": "d09fd909526bac88579c993b85294c210ca76959e38a0018f4d4181f48e2302b"
+        },
+        {
+          "path": "references/docker-patterns.md",
+          "sha256": "b6ccc98c44aa64e9c9aa837c793369914516ae874961de7eec38191c8cf61861"
+        },
+        {
+          "path": "references/github-actions.md",
+          "sha256": "04d2d1c339762948dd513c268482d3ffada30068bbea92f282bf753837cb5e4b"
+        },
+        {
+          "path": "references/gitlab-ci.md",
+          "sha256": "8b4e6492a96ff5b94c07dcddca3a093121845a13bc4f2699844c06f42f3043e2"
+        },
+        {
+          "path": "references/incident-response.md",
+          "sha256": "8410ae3e9c7295f4fda94d7fa85438292e675a4e10dc64a61aead4df162522a4"
+        },
+        {
+          "path": "references/kubernetes.md",
+          "sha256": "7da17b4e40c05d8c5c694ae532524072b1eed9d078f336c57970d6fc5473ce0b"
+        },
+        {
+          "path": "references/platform-engineering.md",
+          "sha256": "1256d7f015cb45c8e35ad708cf9a51ef429c95945d07705fb416bc89e3bc1bfd"
+        },
+        {
+          "path": "references/release-automation.md",
+          "sha256": "bf546d38622d8f9185939d5d3bafea8859f44a7c60e85957afc39347052abc45"
+        },
+        {
+          "path": "references/terraform-iac.md",
+          "sha256": "0d629d4b9826cbd97c1d5a6e826d701bacd3f057d4092cda0e5bb9da692e922b"
+        }
+      ]
+    },
+    {
+      "id": "sre-engineer",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/sre-engineer",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "7d3ff7346b57ae80a345bb32bfde35712639ccff0fbb042ee98d89e905b7796d"
+        },
+        {
+          "path": "references/automation-toil.md",
+          "sha256": "6e93b916b246a739e28583f70565abcfee18285141900734ef1587329858272f"
+        },
+        {
+          "path": "references/error-budget-policy.md",
+          "sha256": "ab1eb5849bcb1345b57ed5a34d8836dc853e30968b998601195bfc65f803c0cd"
+        },
+        {
+          "path": "references/incident-chaos.md",
+          "sha256": "063058f0f36d2c420f33dd158f6e96b24328b47043a59ea8523f0391717dfdac"
+        },
+        {
+          "path": "references/monitoring-alerting.md",
+          "sha256": "22479c9718b70d889baf43fa7c6cbbe7015f3ba7d710f627c7da68286ca0adf1"
+        },
+        {
+          "path": "references/slo-sli-management.md",
+          "sha256": "9f56a471eaf30474906deea6009b800eae972097828560ab950d104525b900d2"
+        }
+      ]
+    },
+    {
+      "id": "test-master",
+      "repository": "jeffallan/claude-skills",
+      "commit": "882ef55e377dbf9a4dbe496bb41ac6ccd0e555cf",
+      "sourcePath": "skills/test-master",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "f16f02c55fcc761bac2e9f31fff2fc47398601b125a3658399b35670271889e9"
+        },
+        {
+          "path": "references/automation-frameworks.md",
+          "sha256": "407d5778b282cdf1bc72ccb18e81e9f8479198218da4dd8f35cbeda40e8a4c00"
+        },
+        {
+          "path": "references/e2e-testing.md",
+          "sha256": "b9b731c88e0bce4a2dc35f2f97b7c37e83104c075cd8f5f81b267a0632c855ae"
+        },
+        {
+          "path": "references/integration-testing.md",
+          "sha256": "2330ec33787f4afcde1486c0c041b33f015396d995b0799372f081601631dfa8"
+        },
+        {
+          "path": "references/performance-testing.md",
+          "sha256": "8ba93c666af382e91c8ee1bd4ccc02e213c3c3b986b1b88f53321214bd2d6955"
+        },
+        {
+          "path": "references/qa-methodology.md",
+          "sha256": "9277588309c80929241df3302150cae1c966cb83dd1dc2be3125a943fa4d4477"
+        },
+        {
+          "path": "references/security-testing.md",
+          "sha256": "aa4fe58e2e1341fc8e9ce2c50abe940b378571fa0b9233904aa567a31d8bb6fc"
+        },
+        {
+          "path": "references/tdd-iron-laws.md",
+          "sha256": "1f719ea75af92dac32762b9e27d7f1bd6dfd7be9d71c8b8db7b1c8842b34bed1"
+        },
+        {
+          "path": "references/test-reports.md",
+          "sha256": "9202c94244a2da9981fec66042634244478bf8d762061856f71d202e0e4744cf"
+        },
+        {
+          "path": "references/testing-anti-patterns.md",
+          "sha256": "ae653194178f04a7fe7662d256e2d11da763d6d2e04fcd091f7b374d70b28945"
+        },
+        {
+          "path": "references/unit-testing.md",
+          "sha256": "6165c82a10c79295ce45329fa16895128888ffd874269ee509af56061291c43a"
+        }
+      ]
+    },
+    {
+      "id": "security-best-practices",
+      "repository": "openai/skills",
+      "commit": "49f948faa9258a0c61caceaf225e179651397431",
+      "sourcePath": "skills/.curated/security-best-practices",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "7b3dae1ffc5434d890f3c65c8f552af52d0307fab3b35dec13013c9ca3844c4f"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "6e9c6f2edce448eb2b589f81ad6e3f722665021785513bcbfd0bf7b86b529171"
+        },
+        {
+          "path": "references/golang-general-backend-security.md",
+          "sha256": "a73c47c34497b120672d48411fe51dc90d426a571801a0b3f649e2ce4ec658b4"
+        },
+        {
+          "path": "references/javascript-express-web-server-security.md",
+          "sha256": "427835cbb5be7ba96172ea6ca9af80ddd4419c833e9ebf870996740c80d8406c"
+        },
+        {
+          "path": "references/javascript-general-web-frontend-security.md",
+          "sha256": "3a7bc7b3f6e7ff043db9dbaa8933894d7a19d987d0607e4ddae5d70184a63d63"
+        },
+        {
+          "path": "references/javascript-jquery-web-frontend-security.md",
+          "sha256": "bcbad2fa6c2a02709e47e889e70102c76886bf36bc798624d27db570eccf40da"
+        },
+        {
+          "path": "references/javascript-typescript-nextjs-web-server-security.md",
+          "sha256": "71c773f7a97ce60c853adfa100b3d88b3b7bc4c6b8acaef1432ffabd923ee182"
+        },
+        {
+          "path": "references/javascript-typescript-react-web-frontend-security.md",
+          "sha256": "d3030c0f24bddb56b9bbb91bbec1ee49eb7778bce4d3e0297b2641b2fc6b0d9c"
+        },
+        {
+          "path": "references/javascript-typescript-vue-web-frontend-security.md",
+          "sha256": "77c6a747f9f17e3df03aad0fcb20d99ac7898001b81aef8b80908e45ac14a688"
+        },
+        {
+          "path": "references/python-django-web-server-security.md",
+          "sha256": "4fb69b5d45f10e588d1a8c35cdc5f59e18910f6b46a93e2d342d90f286f8dfd2"
+        },
+        {
+          "path": "references/python-fastapi-web-server-security.md",
+          "sha256": "7383c7f4fc271190b05e562ada7e825982a2c76b6c79a9f95a1da7687b65a616"
+        },
+        {
+          "path": "references/python-flask-web-server-security.md",
+          "sha256": "9606d69190c04c167fdeac57e61297547a57b0542fd89dede36f355970446929"
+        }
+      ]
+    },
+    {
+      "id": "security-threat-model",
+      "repository": "openai/skills",
+      "commit": "49f948faa9258a0c61caceaf225e179651397431",
+      "sourcePath": "skills/.curated/security-threat-model",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "1283c0dd62a8104d9edda4583569b5d8510b4ddaa45120687c999250fd96bad2"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "3319b59736312abceca614e341c0e59cae47263e3b58a22b2b5ddf1e5fc8c227"
+        },
+        {
+          "path": "references/prompt-template.md",
+          "sha256": "81a59aa3fb3ac3a739d6a26ab38e4015965f215581ee54becef21a2b121ec29b"
+        },
+        {
+          "path": "references/security-controls-and-assets.md",
+          "sha256": "d536cfa9acad2523dc39134bcf33b9566c29dd9a57b407cbc9901637230c6b98"
+        }
+      ]
+    },
+    {
+      "id": "gh-fix-ci",
+      "repository": "openai/skills",
+      "commit": "49f948faa9258a0c61caceaf225e179651397431",
+      "sourcePath": "skills/.curated/gh-fix-ci",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "7b326b4a2f0f5f85122144628ec02077e48841e0e0e82efce88b3415bcfb7c26"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "36f73b9450504983d1647c960689596f59bf9147c14b1b43162912ed7ada9af6"
+        },
+        {
+          "path": "assets/github-small.svg",
+          "sha256": "ee05e92d373d4d84f4612af3c1090ef67698d421bbe30896a4ed5a00cb86a069"
+        },
+        {
+          "path": "assets/github.png",
+          "sha256": "d55a9baa41798d8b5108e3058df3a5bda09914ea9fd73b49929cc38a8832424f"
+        },
+        {
+          "path": "scripts/inspect_pr_checks.py",
+          "sha256": "9459e5b03f86785d184a83e5cd8d621b832e918ec04158a2962d867785812c6c"
+        }
+      ]
+    },
+    {
+      "id": "web-perf",
+      "repository": "cloudflare/skills",
+      "commit": "b052c32bab7dd493513260228a36c88294f343f1",
+      "sourcePath": "skills/web-perf",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "79c531e95ca4d96a7de920c28c127c2c09ec55cd452a92222267d2954580be23"
+        }
+      ]
+    }
+  ]
+}

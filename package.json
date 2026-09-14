@@ -3,12 +3,14 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "engines": { "node": "22.x" },
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node scripts/test-office-workspace.mjs && node scripts/test-office.mjs && node --test scripts/test-api.mjs scripts/test-cloud-store.mjs scripts/test-runtime.mjs",
+    "test": "node scripts/test-office-workspace.mjs && node scripts/test-office.mjs && node --test scripts/test-api.mjs scripts/test-cloud-store.mjs scripts/test-runtime.mjs scripts/test-agents.mjs",
     "db:migrate": "node server/migrate.js",
     "test:api": "node --test scripts/test-api.mjs",
     "test:cloud": "node --test scripts/test-cloud-store.mjs",
@@ -18,8 +20,15 @@
     "worker:start": "node worker/service.js start",
     "worker:stop": "node worker/service.js stop",
     "test:runtime": "node --test scripts/test-runtime.mjs",
-    "test:runtime-db": "node --env-file=.env.test.local scripts/test-runtime-database.mjs"
+    "test:runtime-db": "node --env-file=.env.test.local scripts/test-runtime-database.mjs",
+    "agents:generate": "node scripts/generate-agent-profiles.mjs",
+    "test:agents": "node --test scripts/test-agents.mjs"
   },
-  "dependencies": { "three": "^0.180.0", "postgres": "^3.4.7" },
-  "devDependencies": { "vite": "^7.3.6" }
+  "dependencies": {
+    "three": "^0.180.0",
+    "postgres": "^3.4.7"
+  },
+  "devDependencies": {
+    "vite": "^7.3.6"
+  }
 }

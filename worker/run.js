@@ -7,9 +7,12 @@ import postgres from 'postgres';
 import { CodexClient, clientConfiguration } from './codex-client.js';
 import { prepareRepository, collectReview, commitReview, publishReview, checkoutPath } from './repository.js';
 import { workerHeartbeat, claimRun, updateOwnedRun, getRun, addRunMessage } from '../server/runtime.js';
+import { getProfile, roleInstructions } from '../agent-library/profiles.js';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const skillRoot = join(repository, 'agent-library', 'skills');
+const skillRoots = getProfile('sam').skills.map(skill => join(skillRoot, skill.id));
 const envFile = resolve(process.env.SAM_ENV_FILE || join(repository, '.env.worker.local'));
 const settings = parseEnv(await readFile(envFile, 'utf8'));
 const databaseUrl = settings.DATABASE_URL || settings.POSTGRES_URL;
@@ -26,7 +29,7 @@ await writeFile(join(stateDir, 'private-canary.txt'), 'This file must never be r
 
 const instructions = `You are Sam, the developer in the user's Virtual Team office. Work only on the connected Virtual-Team repository in the current directory. Read README.md, OFFICE.md and any applicable AGENTS.md before changing code. Keep the existing desktop and tablet interface, sample labels, cloud persistence, and authentication. Do not add a mobile layout unless asked. Do not reintroduce the removed pet, walking conversations, or playable arcade game.
 The conversation below comes from the user in your own chat. Answer naturally and report concrete progress. If a material detail is missing, invoke ask_user with one concise question and wait for its result. Do not merely place a blocking question in a final message. In a general conversation, discuss or inspect code, and ask the user to create a task before edits. For an assigned task, perform the authorized changes and run relevant checks. Do not fabricate code, test outcomes, or task completion.
-Only this isolated checkout is available. Do not access another project, credential, integration, database, production service, or network resource. Do not delegate to other agents. Do not commit, push, merge, deploy, or open a pull request: the worker handles exact code snapshots and the user approves them separately. Do not run background processes. Do not change repository permissions or runtime configuration. If a required dependency or capability is unavailable, explain the specific limitation. Finish with a concise summary of the actual changes and checks.`;
+Work in this isolated checkout. Your three assigned skill packages are also available as read-only reference directories; they grant no additional capabilities. Do not access another project, credential, integration, database, production service, or network resource. Do not delegate to other agents. Do not commit, push, merge, deploy, or open a pull request: the worker handles exact code snapshots and the user approves them separately. Do not run background processes. Do not change repository permissions or runtime configuration. If a required dependency or capability is unavailable, explain the specific limitation. Finish with a concise summary of the actual changes and checks.`;
 
 function safeError(error) {
   const message = String(error?.message || 'The run could not finish.');
@@ -60,7 +63,7 @@ async function runJob(job) {
     }
     const checkout = await prepareRepository({ repository, stateDir, run, baseRef });
     await update(current => { Object.assign(current, { checkout: checkout.cwd, base: checkout.base, branch: checkout.branch, activity: 'Reading the repository' }); });
-    const args = await clientConfiguration(checkout.cwd, join(repository, 'node_modules'), { readonly: !task });
+    const args = await clientConfiguration(checkout.cwd, join(repository, 'node_modules'), { readonly: !task, skillRoots });
     const completion = new Promise((resolve, reject) => { waitTurn = { resolve, reject }; });
     completion.catch(() => {});
     const agentMessages = new Map();
@@ -120,7 +123,7 @@ async function runJob(job) {
     });
     if (canary.exitCode !== 0) throw new Error('The installed Codex runtime could not enforce the workspace boundary. Sam was not started.');
     const started = await client.request('thread/start', { cwd: checkout.cwd, runtimeWorkspaceRoots: [checkout.cwd], permissions: 'sam', approvalPolicy: 'never', ephemeral: true,
-      serviceName: 'virtual-team', developerInstructions: instructions, selectedCapabilityRoots: [],
+      serviceName: 'virtual-team', developerInstructions: `${instructions}\n\n${roleInstructions('sam', { referenceRoot: skillRoot })}`, selectedCapabilityRoots: [],
       dynamicTools: [{ type: 'function', name: 'ask_user', description: 'Ask the workspace owner a necessary question in this chat and wait for their answer.', inputSchema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'], additionalProperties: false } }],
     });
     threadId = started.thread.id;

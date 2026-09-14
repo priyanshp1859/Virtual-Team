@@ -2,9 +2,17 @@
 
 A private, desktop-and-tablet workspace for an AI team, presented as an interactive 3D office. Sam's chat opens first after sign-in. The application includes per-agent conversations, task history, a shared work queue, and an explicitly labeled sample code-review workflow.
 
-The frontend is Vite and Three.js. Vercel Functions provide the API, and PostgreSQL provisioned through Vercel Marketplace stores the workspace. Sam connects to a local Codex worker: he can discuss the repository, ask questions in chat, edit an isolated checkout, run checks and prepare actual code for review. Other agents and voice meetings remain previews.
+The frontend is Vite and Three.js. Vercel Functions provide the API, and PostgreSQL provisioned through Vercel Marketplace stores the workspace. Sam connects to a local Codex worker: he can discuss the repository, ask questions in chat, edit an isolated checkout, run checks and prepare actual code for review. The office now defines 20 agents across six departments, with per-role responsibilities and 25 curated skills. The other 19 profiles can save chats and tasks but have no execution connection; voice meetings remain previews.
 
 Sam works while the owner's computer and worker are online. The website and saved conversations remain available when the worker is off. See [RUNTIME.md](RUNTIME.md) for setup, execution boundaries, start/stop controls and recovery.
+
+## Departments and skills
+
+Open **Departments & skills** in the sidebar, or an agent's **Profile** tab, to browse the roster, role boundaries, assigned skills and source links. See [AGENT_TEAM.md](AGENT_TEAM.md) for the full mapping. Eight roles are marked as the proposed starter team; only Sam currently executes work. Six existing avatars keep their seats while additional seating awaits assignment.
+
+The source of truth is `agent-library/roster.json` and `catalog.json`. Skill packages discovered through skills.sh are pinned to upstream commits and checked against `skills.lock.json`. Package instructions and bundled helpers are retained with their licenses; installing these references does not connect tools or execute scripts. Only metadata enters the frontend bundle. Run `npm run agents:generate` after changing the roster or mapping, and `npm run test:agents` to verify profiles, persistence compatibility and package integrity.
+
+Sam receives his authored role brief and the paths to his three assigned packages on each run. The worker grants read-only access to those reference directories so existing isolated tasks can use them too. New agent execution and communication between departments are a separate next step.
 
 ## Run locally
 

@@ -16,7 +16,7 @@ export function cleanEnvironment(environment = process.env) {
   const keys = ['PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL', 'LANG', 'LC_ALL', 'TMPDIR', 'SYSTEMROOT', 'CODEX_HOME'];
   return Object.fromEntries(keys.filter(key => environment[key]).map(key => [key, environment[key]]));
 }
-export async function clientConfiguration(cwd, dependencyRoot, { readonly = false } = {}) {
+export async function clientConfiguration(cwd, dependencyRoot, { readonly = false, skillRoots = [] } = {}) {
   const nodeRoot = dirname(dirname(await realpath(process.execPath)));
   const gitBinary = process.platform === 'darwin' ? (await promisify(execFile)('/usr/bin/xcrun', ['--find', 'git'])).stdout.trim() : '/usr/bin/git';
   const gitRuntime = dirname(dirname(await realpath(gitBinary)));
@@ -38,7 +38,7 @@ export async function clientConfiguration(cwd, dependencyRoot, { readonly = fals
       description: 'Virtual-Team only. No network or access to other project files.', extends: readonly ? ':read-only' : ':workspace',
       filesystem: { ':root': 'deny', ':minimal': 'read', ':tmpdir': 'deny', ':slash_tmp': 'deny',
         [cwd]: readonly ? 'read' : 'write', [join(cwd, '.git')]: 'read', [join(cwd, '.codex')]: 'deny',
-        [join(cwd, '.agents')]: 'deny', [dependencyRoot]: 'read', [nodeRoot]: 'read', [gitRuntime]: 'read', [dirname(codexPath)]: 'read', [codexRuntime]: 'read', '/System/Library/OpenSSL': 'read' }, network: { enabled: false },
+        [join(cwd, '.agents')]: 'deny', ...Object.fromEntries(skillRoots.map(root => [root, 'read'])), [dependencyRoot]: 'read', [nodeRoot]: 'read', [gitRuntime]: 'read', [dirname(codexPath)]: 'read', [codexRuntime]: 'read', '/System/Library/OpenSSL': 'read' }, network: { enabled: false },
     },
   };
   for (const match of source.matchAll(/^\[(mcp_servers\.([A-Za-z0-9_-]+)|plugins\."[^"]+")\]\s*$/gm)) {

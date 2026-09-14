@@ -1,9 +1,10 @@
-import { AGENTS } from './config.js';
+import { AGENTS, DEPARTMENTS } from './config.js';
 import { STATUS_LABELS } from './cloud-store.js';
+import { renderAgentProfile } from './team-directory.js';
 import './agent-panel.css';
 import './runtime.css';
 
-const TABS = ['chat', 'tasks', 'review'];
+const TABS = ['chat', 'tasks', 'review', 'profile'];
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -186,6 +187,8 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   taskSection.append(taskHeader, taskForm, taskList);
 
   const reviewSection = sections.get('review');
+  const profileSection = sections.get('profile'); profileSection.dataset.testid = 'agent-profile';
+  let profileSignature = '';
   const reviewContent = el('div', 'aw-review-content'); reviewContent.dataset.testid = 'review-content';
   const reviewForm = el('div', 'aw-review-form'); reviewForm.hidden = true;
   const feedbackLabel = el('label', 'aw-field-label', 'Feedback'); feedbackLabel.htmlFor = 'aw-review-feedback';
@@ -356,7 +359,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   function renderPresence() {
     const person = presence?.agents?.find(item => item.id === agentId);
     const rooms = { coding: 'Coding room', head: 'Head’s cabin', design: 'Design studio', review: 'Review room', meeting: 'Meeting room', chill: 'Gaming lounge', hallway: 'Hallway' };
-    const text = person ? `Office avatar · ${person.state === 'walking' ? 'walking' : rooms[person.room] || 'at their desk'}` : 'Office avatar · ready to explore';
+    const text = person ? `Office avatar · ${person.state === 'walking' ? 'walking' : rooms[person.room] || 'at their desk'}` : `${DEPARTMENTS.find(item => item.id === agent().department).name} · seat awaiting assignment`;
     if (presenceLabel.textContent !== text) presenceLabel.textContent = text;
   }
   function render() {
@@ -366,13 +369,13 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     name.textContent = person.name; role.textContent = person.role; avatar.textContent = person.name[0]; avatar.style.setProperty('--agent-color', person.color); renderPresence();
     offline.textContent = connectedAgent() ? snapshot.runtime.online ? 'Connected' : 'Worker offline' : 'Not connected';
     offline.dataset.online = String(Boolean(connectedAgent() && snapshot.runtime.online));
-    connectionNote.textContent = connectedAgent() ? snapshot.runtime.online ? 'Codex on your computer · Virtual-Team repository' : 'Chats are saved. Sam runs while this computer’s worker is online.' : 'Chats and tasks are saved to your private workspace.';
+    connectionNote.textContent = connectedAgent() ? snapshot.runtime.online ? 'Codex on your computer · Virtual-Team repository' : 'Chats are saved. Sam runs while this computer’s worker is online.' : 'Profile and skills ready. Chats are saved; execution is not connected.';
     taskQueueHelp.textContent = connectedAgent() ? 'Sam works in an isolated copy of Virtual-Team. Review the actual code before publishing.' : 'Saved to your workspace queue. No agent is connected to execute this task yet.';
     approvalNote.textContent = task?.review?.digest ? 'Approves this exact revision and creates a GitHub pull request. Merge it in GitHub to deploy.' : 'Saves this decision to your workspace. No files are changed.';
     approveButton.textContent = task?.review?.digest ? 'Approve & create PR' : 'Approve';
     storageWarning.hidden = !snapshot.persistenceError;
     storageWarning.textContent = snapshot.persistenceError || '';
-    const counts = { chat: snapshot.messages.filter(message => message.agentId === agentId).length, tasks: agentTasks.length, review: agentTasks.filter(item => item.status === 'in_review').length };
+    const counts = { chat: snapshot.messages.filter(message => message.agentId === agentId).length, tasks: agentTasks.length, review: agentTasks.filter(item => item.status === 'in_review').length, profile: person.skills.length };
     for (const key of TABS) {
       const active = key === tab; const control = tabButtons.get(key);
       control.setAttribute('aria-selected', String(active)); control.tabIndex = active ? 0 : -1;
@@ -415,6 +418,8 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       titleInput.value = draft.title || ''; briefInput.value = draft.brief || ''; taskForm.hidden = true;
     }
     renderMessages(task); renderTasks(agentTasks); renderReview(task);
+    const nextProfileSignature = `${agentId}:${Boolean(snapshot.runtime?.enabled)}:${Boolean(snapshot.runtime?.online)}`;
+    if (profileSignature !== nextProfileSignature) { profileSection.replaceChildren(renderAgentProfile(person, snapshot.runtime)); profileSignature = nextProfileSignature; }
     const cannotSave = pending || snapshot.connectionStatus === 'saving' || !snapshot.authenticated || snapshot.revision < 0;
     for (const control of [queueTask, approveButton, changesButton, sampleAction]) control.disabled = cannotSave;
     if (task?.review?.digest && !task.review.publishable) approveButton.disabled = true;
