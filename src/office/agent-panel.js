@@ -1,5 +1,5 @@
 import { AGENTS, DEPARTMENTS } from './config.js';
-import { WORKFLOW_STEPS } from './workflow-config.js';
+import { WORKFLOW_STEPS, workflowSteps } from './workflow-config.js';
 import { STATUS_LABELS } from './cloud-store.js';
 import { renderAgentProfile } from './team-directory.js';
 import './agent-panel.css';
@@ -92,7 +92,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   const projectWork = button('Open project work', 'aw-project-work'); projectWork.hidden = true;
   projectWork.addEventListener('click', () => {
     for (const project of projectState.projects) {
-      const step = WORKFLOW_STEPS.find(d => d.agentId === agentId && project.steps[d.id].status !== 'locked');
+      const step = workflowSteps(project).find(d => d.agentId === agentId && project.steps[d.id].status !== 'locked');
       if (step) { onOpenProject({ projectId: project.id, stepId: step.id }); return; }
     }
     onOpenProject({});

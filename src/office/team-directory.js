@@ -24,7 +24,7 @@ export function renderAgentProfile(agent, runtime) {
   const summary = el('div', 'ap-summary');
   summary.append(el('span', 'ap-department', department.name), el('h3', '', agent.description));
   const badges = el('div', 'ap-badges');
-  if (agent.launchTeam) badges.append(el('span', 'ap-tag', 'Starter team'));
+  if (agent.launchTeam) badges.append(el('span', 'ap-tag', 'Core team'));
   badges.append(el('span', 'ap-tag', agent.id === 'sam' && runtime?.enabled ? runtime.online ? 'Worker connected' : 'Worker offline' : runtime?.projectAgents?.includes(agent.id) ? runtime.projectOnline ? 'Project worker connected' : 'Project worker offline' : 'Profile ready · connection pending'));
   summary.append(badges); fragment.append(summary);
   fragment.append(el('h4', 'ap-heading', 'Responsibilities'), list(agent.responsibilities));
@@ -65,15 +65,16 @@ export function createTeamDirectory({ store, projectStore, onSelect }) {
   const count = el('span', 'td-count'); count.setAttribute('role', 'status');
   toolbar.append(searchLabel, count);
   const filters = el('div', 'td-filters'); filters.setAttribute('aria-label', 'Filter by department');
-  let selected = 'all', opener = null, openingProfile = false;
+  let selected = 'all', coreOnly = true, opener = null, openingProfile = false;
   const filterButtons = new Map();
   for (const department of [{ id: 'all', name: 'All departments' }, ...DEPARTMENTS]) {
     const button = el('button', 'td-filter', department.name); button.type = 'button'; button.dataset.department = department.id;
     button.addEventListener('click', () => { selected = department.id; render(); }); filterButtons.set(department.id, button); filters.append(button);
   }
+  const scope = el('button', 'td-filter', 'Show on-demand specialists'); scope.type = 'button'; scope.dataset.testid = 'team-scope'; scope.addEventListener('click', () => { coreOnly = !coreOnly; scope.textContent = coreOnly ? 'Show on-demand specialists' : 'Show core team only'; render(); }); toolbar.append(scope);
   const body = el('div', 'td-body'); body.dataset.testid = 'team-results';
   const foot = el('footer', 'td-footer');
-  foot.append(el('span', '', 'Open a profile to see responsibilities and skill sources.'), el('span', '', `${AVATAR_AGENTS.length} existing office seats · other seats await assignment`));
+  foot.append(el('span', '', 'Open a profile to see responsibilities and skill sources.'), el('span', '', `${AVATAR_AGENTS.length} core team seats · specialists join when needed`));
   dialog.append(header, toolbar, filters, body, foot); document.body.append(dialog);
 
   function render() {
@@ -82,7 +83,7 @@ export function createTeamDirectory({ store, projectStore, onSelect }) {
     for (const [id, button] of filterButtons) button.setAttribute('aria-pressed', String(id === selected));
     for (const department of DEPARTMENTS) {
       if (selected !== 'all' && selected !== department.id) continue;
-      const matches = AGENTS.filter(agent => agent.department === department.id &&
+      const matches = AGENTS.filter(agent => agent.department === department.id && (!coreOnly || agent.launchTeam || query) &&
         [agent.name, agent.role, agent.description, department.name, ...agent.skills.flatMap(binding => [binding.id, SKILLS.find(skill => skill.id === binding.id)?.name])].join(' ').toLowerCase().includes(query));
       if (!matches.length) continue;
       total += matches.length;
@@ -100,7 +101,7 @@ export function createTeamDirectory({ store, projectStore, onSelect }) {
         const projectRuntime = projectStore?.getState().runtime;
         const projectRole = WORKFLOW_STEPS.some(d => d.agentId === agent.id && projectRuntime?.capabilities?.[d.kind]);
         tags.append(el('span', agent.id === 'sam' && store.getState().runtime?.online ? 'td-tag connected' : 'td-tag', agent.id === 'sam' && store.getState().runtime?.online ? 'Connected' : projectRole ? projectRuntime.online ? 'Project worker' : 'Worker offline' : 'Profile ready'));
-        if (agent.launchTeam) tags.append(el('span', 'td-tag core', 'Starter team'));
+        tags.append(el('span', agent.launchTeam ? 'td-tag core' : 'td-tag', agent.launchTeam ? 'Core team' : 'On demand'));
         const skills = el('div', 'td-skill-names');
         for (const binding of agent.skills) skills.append(el('span', '', SKILLS.find(skill => skill.id === binding.id).name));
         card.append(identity, tags, el('p', 'td-description', agent.description), skills, el('span', 'td-open', 'View profile & skills ↗'));
@@ -115,7 +116,7 @@ export function createTeamDirectory({ store, projectStore, onSelect }) {
   dialog.addEventListener('keydown', event => { if (event.key === 'Escape') event.stopPropagation(); });
   dialog.addEventListener('close', () => { if (!openingProfile && opener?.isConnected) opener.focus({ preventScroll: true }); });
   return {
-    open() { opener = document.activeElement; openingProfile = false; selected = 'all'; search.value = ''; render(); dialog.showModal(); search.focus(); },
+    open() { opener = document.activeElement; openingProfile = false; selected = 'all'; coreOnly = true; scope.textContent = 'Show on-demand specialists'; search.value = ''; render(); dialog.showModal(); search.focus(); },
     close() { dialog.close(); },
     dispose() { dialog.remove(); },
   };

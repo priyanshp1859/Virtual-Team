@@ -8,11 +8,11 @@ Sam works while the owner's computer and worker are online. The website and save
 
 ## Departments and skills
 
-Open **Departments & skills** in the sidebar, or an agent's **Profile** tab, to browse the roster, role boundaries, assigned skills and source links. See [AGENT_TEAM.md](AGENT_TEAM.md) for the full mapping. Eight roles are marked as the proposed starter team; Sam executes standalone coding tasks, and seven roles execute project documents/reviews. Six existing avatars keep their seats while additional seating awaits assignment.
+Open **Departments & skills** in the sidebar, or an agent's **Profile** tab, to browse the roster, role boundaries, assigned skills and source links. See [AGENT_TEAM.md](AGENT_TEAM.md) for the full mapping. Six roles form the core team: Nora, Maya, Sam, Ava, Theo and Noor; Sam executes standalone coding tasks, and seven roles execute project documents/reviews. The office avatars represent the six core roles. Fourteen specialist profiles remain available on demand.
 
 The source of truth is `agent-library/roster.json` and `catalog.json`. Skill packages discovered through skills.sh are pinned to upstream commits and checked against `skills.lock.json`. Package instructions and bundled helpers are retained with their licenses; installing these references does not connect tools or execute scripts. Only metadata enters the frontend bundle. Run `npm run agents:generate` after changing the roster or mapping, and `npm run test:agents` to verify profiles, persistence compatibility and package integrity.
 
-Sam receives his authored role brief and the paths to his three assigned packages on each run. The worker grants read-only access to those reference directories so existing isolated tasks can use them too. Open **Projects & approvals** to start a brief, follow Nora’s PRD and Theo’s independent review, then approve the exact PRD version. Handoffs through written design foundations, UX planning, motion planning and Ava’s concept review are automatic after the required owner approvals. See [PROJECT_WORKFLOW.md](PROJECT_WORKFLOW.md) for the implemented boundary and remaining connections.
+Sam receives his authored role brief and the paths to his three assigned packages on each run. The worker grants read-only access to those reference directories so existing isolated tasks can use them too. Open **Projects & approvals** to start a brief, follow Nora’s PRD and Theo’s independent review, then approve the exact PRD version. New projects send approved scope to Maya, then Ava for independent review. Select Milo for motion, Eden for substantial design-system work and Alex for delivery oversight when needed. Sam owns project implementation and Theo independently reviews it; later execution connections remain pending. See [PROJECT_WORKFLOW.md](PROJECT_WORKFLOW.md) for the implemented boundary and remaining connections.
 
 ## Run locally
 
@@ -22,13 +22,13 @@ Use Node.js 22, then install dependencies:
 npm ci
 ```
 
-Copy `.env.example` to `.env.local`. Set the database connection string and two separate random secrets: `WORKSPACE_ACCESS_CODE` for signing in and `SESSION_SECRET` for signing session cookies. Use at least 32 characters for each secret. Keep this file private; it is excluded from Git.
+Create `.env.development.local` for local work using a separate development or QA database. Set `DEVELOPMENT_DATABASE_NAME` to that database name (it must identify development/test/QA). The local server refuses production data. Use `.env.example` as the configuration reference. Set the database connection string and two separate random secrets: `WORKSPACE_ACCESS_CODE` for signing in and `SESSION_SECRET` for signing session cookies. Use at least 32 characters for each secret. Keep this file private; it is excluded from Git.
 
-Run the additive schema migration against a development database, then start the app:
+The current local rebuild is not deployed. Do not push or deploy without explicit owner authorization. Run the additive schema migration against the development database, then start the app:
 
 ```sh
-npm run db:migrate
-npm run dev
+node --env-file=.env.development.local server/migrate.js
+npm run dev -- --host 127.0.0.1 --port 5180 --strictPort
 ```
 
 Vite serves the same API handlers used by Vercel Functions during local development. Restart the dev server after changing backend modules or environment variables.

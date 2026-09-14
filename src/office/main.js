@@ -35,10 +35,7 @@ document.querySelectorAll('[data-icon]').forEach((el) => el.innerHTML = icon(el.
 $('rooms-list').innerHTML = ROOMS.map(room => `<button class="room-nav" data-room="${room.id}" style="--room-color:${room.color}" aria-label="Focus ${room.name}">${icon(room.id)}<span>${room.name}</span><span class="count">${AGENTS.filter(a => a.room === room.id).length.toString().padStart(2, '0')}</span></button>`).join('');
 $('team-count').textContent = String(AGENTS.length).padStart(2, '0');
 const teamButton = a => `<button class="team-member" data-agent="${a.id}" aria-label="Select ${a.name}, ${a.role}"><span class="person-icon" style="--person-color:${a.color}" aria-hidden="true"></span><span class="person-copy"><span class="person-name">${a.name}</span><span class="person-role">${a.role}</span></span><span class="person-presence disconnected" aria-label="Connection pending"></span></button>`;
-$('team-list').innerHTML = DEPARTMENTS.map(department => {
-  const members = AGENTS.filter(agent => agent.department === department.id);
-  return `<details class="team-department" data-team-department="${department.id}" ${['leadership', 'engineering'].includes(department.id) ? 'open' : ''}><summary>${department.name}<span class="team-department-count">${members.length}</span></summary>${members.map(teamButton).join('')}</details>`;
-}).join('');
+$('team-list').innerHTML = `<details class="team-department" open><summary>Core team<span class="team-department-count">6</span></summary>${AGENTS.filter(a => a.launchTeam).map(teamButton).join('')}</details><details class="team-department"><summary>On-demand specialists<span class="team-department-count">14</span></summary>${AGENTS.filter(a => !a.launchTeam).map(teamButton).join('')}</details>`;
 
 function updateClock() {
   $('local-time').textContent = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date());

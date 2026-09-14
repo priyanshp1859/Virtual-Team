@@ -9,7 +9,7 @@ import { updateProjectClaim } from '../server/projects.js';
 import { workerHeartbeat } from '../server/runtime.js';
 
 export async function runProjectJob({ sql, owner, job, repository, stateDir, baseRef, settings, isStopped, setActiveClient }) {
-  const { claim } = job, d = definition(claim.stepId), profile = getProfile(d.agentId);
+  const { claim } = job, d = definition(claim.stepId, job.project), profile = getProfile(d.agentId);
   const update = (fn, options) => updateProjectClaim(sql, claim, fn, options);
   let client, alive = true, heartbeatBusy = false, eventQueue = Promise.resolve(), submitted = null, asked = false, finish, threadId;
   const completion = new Promise((resolve, reject) => { finish = { resolve, reject }; }); completion.catch(() => {});

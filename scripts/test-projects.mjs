@@ -5,10 +5,62 @@ import { createProject, claimStep, completeStep, ownerCommand, requireClaim, app
 import { validateProjectOperation } from '../server/projects.js';
 import { createProjectsHandler } from '../api/projects.js';
 import { createSessionCookie, configuration } from '../server/auth.js';
-const fresh = () => createProject({ title: 'Office improvements', brief: 'Desktop and tablet; retain privacy and owner approval.' });
+import { workflowSteps, CORE_TEAM } from '../src/office/workflow-config.js';
+const fresh = () => createProject({ title: 'Office improvements', brief: 'Desktop and tablet; retain privacy and owner approval.' }, { workflowVersion: 1 });
 function finish(p, outcome = 'submitted') { const c = claimStep(p, 'worker'); assert(c); completeStep(p, c, { title: 'A completed artifact', body: 'Actual artifact and evidence for this unit fixture.', outcome }); return c; }
 function scopeReady() { const p = fresh(); finish(p); finish(p, 'approved'); return p; }
 const approve = (p, stepId) => ownerCommand(p, 'decide', { stepId, token: p.steps[stepId].token, decision: 'approved' });
+test('new core projects assign six distinct roles and omit unrequested specialists', () => {
+  const p = createProject({ title: 'Core project', brief: 'A scoped feature.' });
+  const defs = workflowSteps(p); assert.equal(p.workflowVersion, 2);
+  assert.deepEqual([...new Set(defs.map(d => d.agentId).filter(id => id !== 'owner'))].sort(), [...CORE_TEAM].sort());
+  assert.equal(defs.find(d => d.id === 'implementation').agentId, 'sam');
+  for (const id of ['design_system', 'motion_plan', 'coo_review', 'code_review']) assert.equal(p.steps[id], undefined);
+  finish(p); finish(p, 'approved'); approve(p, 'scope_approval');
+  assert.equal(p.steps.ux_plan.status, 'queued'); finish(p); finish(p, 'approved');
+  assert.equal(p.steps.foundation_approval.status, 'needs_approval'); approve(p, 'foundation_approval');
+  assert.equal(p.steps.figma_design.status, 'blocked'); assert.equal(p.steps.implementation.status, 'locked');
+});
+test('all optional specialist combinations route to the correct author and independent reviewer', () => {
+  for (let mask = 0; mask < 8; mask++) {
+    const specialists = ['milo', 'eden', 'alex'].filter((_, i) => mask & (1 << i));
+    const p = createProject({ title: 'Selected specialists', brief: 'A focused project.', specialists: specialists.join(',') });
+    const defs = workflowSteps(p); const lookup = id => defs.find(d => d.id === id);
+    assert.equal(Boolean(p.steps.motion_plan), specialists.includes('milo'));
+    assert.equal(Boolean(p.steps.design_system), specialists.includes('eden'));
+    assert.equal(Boolean(p.steps.coo_review), specialists.includes('alex'));
+    assert.equal(lookup('concept_review').agentId, 'ava');
+    assert.equal(lookup('foundation_approval').returnTo, specialists.includes('eden') ? 'design_system' : 'ux_plan');
+    assert.deepEqual(lookup('engineering_review').needs, ['implementation']);
+    assert.deepEqual(lookup('delivery_approval').needs, [specialists.includes('alex') ? 'coo_review' : 'product_acceptance']);
+    finish(p); finish(p, 'approved'); approve(p, 'scope_approval');
+    if (specialists.includes('eden')) finish(p); finish(p); if (specialists.includes('milo')) finish(p);
+    finish(p, 'approved'); const old = p.steps.foundation_approval.token;
+    ownerCommand(p, 'decide', { stepId: 'foundation_approval', token: old, decision: 'changes_requested', comment: 'Clarify the screen states.' });
+    assert.equal(p.steps[lookup('foundation_approval').returnTo].status, 'queued');
+    assert.equal(p.steps.concept_review.status, 'locked'); assert.equal(p.steps.foundation_approval.status, 'locked');
+  }
+});
+test('unsupported specialists and client-supplied workflow definitions are rejected', () => {
+  for (const specialists of ['sam', 'unknown', 'milo,milo']) assert.throws(() => createProject({ title: 'test', brief: 'test', specialists }), /specialist/);
+  const op = { operationId: randomUUID(), action: 'create', input: { title: 'test', brief: 'test', specialists: 'milo' } };
+  assert(validateProjectOperation(op));
+  assert.throws(() => validateProjectOperation({ ...op, input: { ...op.input, workflowVersion: '1' } }), /valid project/);
+});
+test('discard stops queued and running work, preserves artifacts and prevents stale completion or resume', () => {
+  const p = createProject({ title: 'Discarded fixture', brief: 'Test cancellation.' }); finish(p); const saved = p.artifacts[0]; const claim = claimStep(p, 'worker');
+  ownerCommand(p, 'discard', {}); assert(p.discardedAt); assert.equal(claimStep(p, 'worker'), null);
+  assert.equal(p.artifacts[0].id, saved.id); assert.equal(p.steps.prd_review.status, 'cancelled');
+  assert.throws(() => completeStep(p, claim, { title: 'Late', body: 'Late', outcome: 'approved' }), /replaced/);
+  assert.throws(() => ownerCommand(p, 'resume', {}), /discarded/);
+});
+test('saved legacy workflows keep their original reviewer assignments', () => {
+  const p = fresh(); delete p.workflowVersion; delete p.specialists;
+  const defs = workflowSteps(p); assert.equal(defs.length, 19);
+  assert.equal(defs.find(d => d.id === 'implementation').agentId, 'arjun');
+  assert.equal(defs.find(d => d.id === 'code_review').agentId, 'jules');
+  finish(p); finish(p, 'approved'); approve(p, 'scope_approval'); assert.equal(p.steps.design_system.status, 'queued');
+});
 test('new projects queue Nora only and reject unsigned or premature owner gates', () => {
   const p = fresh(); assert.equal(p.steps.prd.status, 'queued'); assert.equal(p.steps.design_system.status, 'locked');
   assert.throws(() => approve(p, 'scope_approval'), /approval changed/);

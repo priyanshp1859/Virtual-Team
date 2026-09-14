@@ -9,6 +9,12 @@ export default defineConfig(({ mode }) => ({
     name: 'virtual-team-local-api',
     configureServer(server) {
       const environment = loadEnv(mode, process.cwd(), '');
+      // Local development must explicitly use the isolated development database.
+      const databaseUrl = process.env.DATABASE_URL || environment.DATABASE_URL || process.env.POSTGRES_URL || environment.POSTGRES_URL;
+      const expectedDatabase = process.env.DEVELOPMENT_DATABASE_NAME || environment.DEVELOPMENT_DATABASE_NAME;
+      if (!expectedDatabase || !/(?:dev|test|qa)/i.test(expectedDatabase) || !databaseUrl || new URL(databaseUrl).pathname !== `/${expectedDatabase}`) {
+        throw new Error('Local development needs a separate test database. Configure .env.development.local and DEVELOPMENT_DATABASE_NAME; production data is not permitted.');
+      }
       for (const key of ['DATABASE_URL', 'POSTGRES_URL', 'WORKSPACE_ACCESS_CODE', 'SESSION_SECRET', 'SAM_RUNTIME_ENABLED']) {
         if (!process.env[key] && environment[key]) process.env[key] = environment[key];
       }

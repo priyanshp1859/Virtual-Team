@@ -7,19 +7,19 @@ import lock from '../agent-library/skills.lock.json' with { type: 'json' };
 import { roleInstructions, profileMarkdown } from '../agent-library/profiles.js';
 import { createWorkspaceStore } from '../src/office/workspace-store.js';
 
-test('the accepted office structure covers all twenty roles with eight starter roles', () => {
+test('the accepted office structure covers all twenty roles with six core roles', () => {
   assert.equal(AGENTS.length, 20); assert.equal(DEPARTMENTS.length, 6);
   assert.equal(new Set(AGENTS.map(agent => agent.id)).size, 20);
   assert.equal(new Set(AGENTS.map(agent => agent.role)).size, 20);
   assert.deepEqual(DEPARTMENTS.map(dept => AGENTS.filter(agent => agent.department === dept.id).length), [1, 2, 5, 5, 4, 3]);
-  assert.equal(AGENTS.filter(agent => agent.launchTeam).length, 8);
+  assert.equal(AGENTS.filter(agent => agent.launchTeam).length, 6);
   for (const agent of AGENTS) {
     assert(agent.responsibilities.length >= 3); assert(agent.deliverables.length >= 3);
     assert(agent.boundaries.length >= 2); assert(agent.skills.length >= 1 && agent.skills.length <= 3);
   }
 });
-test('existing identities and six physical seats remain compatible without duplicate meeting positions', () => {
-  assert.deepEqual(AVATAR_AGENTS.map(agent => agent.id).sort(), ['alex', 'jules', 'leo', 'maya', 'robin', 'sam']);
+test('core identities and six physical seats remain compatible without duplicate meeting positions', () => {
+  assert.deepEqual(AVATAR_AGENTS.map(agent => agent.id).sort(), ['ava', 'maya', 'noor', 'nora', 'sam', 'theo']);
   assert.equal(new Set(AVATAR_AGENTS.map(agent => String(agent.seat))).size, 6);
   for (const agent of AVATAR_AGENTS) assert(AGENTS.some(item => item.id === agent.id));
 });

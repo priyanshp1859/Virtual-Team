@@ -11,12 +11,12 @@ export const ROOMS = [
 ];
 
 const AVATAR_LAYOUT = [
-  { id: 'alex', name: 'Alex', role: 'Team lead', room: 'head', color: '#727b66', skin: '#d3a07b', hair: '#42342a', position: [-9.4, -8.1], rotation: 0, seat: [6.5, 2.5], meetingRotation: Math.PI / 2, description: 'Coordinates the team, plans assignments, and brings decisions to you.' },
+  { id: 'nora', name: 'Alex', role: 'Team lead', room: 'head', color: '#727b66', skin: '#d3a07b', hair: '#42342a', position: [-9.4, -8.1], rotation: 0, seat: [6.5, 2.5], meetingRotation: Math.PI / 2, description: 'Coordinates the team, plans assignments, and brings decisions to you.' },
   { id: 'sam', name: 'Sam', role: 'Developer', room: 'coding', color: '#66869e', skin: '#bd8663', hair: '#342a27', position: [-10.2, 2.9], rotation: Math.PI, seat: [6.5, 5.5], meetingRotation: Math.PI / 2, description: 'Builds features and works through implementation details.' },
-  { id: 'leo', name: 'Leo', role: 'Developer', room: 'coding', color: '#987d69', skin: '#ead0af', hair: '#65503d', position: [-3.8, 2.9], rotation: Math.PI, seat: [6.5, 8.5], meetingRotation: Math.PI / 2, description: 'Works on application behavior, integrations, and fixes.' },
+  { id: 'ava', name: 'Leo', role: 'Developer', room: 'coding', color: '#987d69', skin: '#ead0af', hair: '#65503d', position: [-3.8, 2.9], rotation: Math.PI, seat: [6.5, 8.5], meetingRotation: Math.PI / 2, description: 'Works on application behavior, integrations, and fixes.' },
   { id: 'maya', name: 'Maya', role: 'Designer', room: 'design', color: '#b27b68', skin: '#b97e5e', hair: '#35272b', position: [-0.3, -8.1], rotation: 0, seat: [10.5, 2.5], meetingRotation: -Math.PI / 2, description: 'Explores interfaces and checks the visual language of the product.' },
-  { id: 'jules', name: 'Jules', role: 'Reviewer', room: 'review', color: '#7e839b', skin: '#e1b492', hair: '#493a31', position: [9.2, -8.1], rotation: 0, seat: [10.5, 5.5], meetingRotation: -Math.PI / 2, description: 'Reviews changes against project guidelines and checks the results.' },
-  { id: 'robin', name: 'Robin', role: 'Available agent', room: 'chill', color: '#aa9260', skin: '#a97553', hair: '#272526', position: [-8.6, 10.1], rotation: Math.PI, seat: [10.5, 8.5], meetingRotation: -Math.PI / 2, description: 'A free seat on your team, ready for its next assignment.' },
+  { id: 'theo', name: 'Jules', role: 'Reviewer', room: 'review', color: '#7e839b', skin: '#e1b492', hair: '#493a31', position: [9.2, -8.1], rotation: 0, seat: [10.5, 5.5], meetingRotation: -Math.PI / 2, description: 'Reviews changes against project guidelines and checks the results.' },
+  { id: 'noor', name: 'Robin', role: 'Available agent', room: 'chill', color: '#aa9260', skin: '#a97553', hair: '#272526', position: [-8.6, 10.1], rotation: Math.PI, seat: [10.5, 8.5], meetingRotation: -Math.PI / 2, description: 'A free seat on your team, ready for its next assignment.' },
 ];
 
 export const DEPARTMENTS = roster.departments;

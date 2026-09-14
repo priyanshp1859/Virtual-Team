@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import { ApiError } from './errors.js';
 import { runtimeTransaction, LEASE_MS } from './runtime.js';
-import { WORKFLOW_CAPABILITIES, WORKFLOW_STEPS } from '../src/office/workflow-config.js';
+import { WORKFLOW_CAPABILITIES, WORKFLOW_STEPS, workflowSteps } from '../src/office/workflow-config.js';
 import { createProject, ownerCommand, publicProject, claimStep, requireClaim, PROJECT_LEASE_MS } from './project-model.js';
 
 const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-const keys = { create: ['title', 'brief', 'sourceText', 'figmaUrl', 'designSystemUrl'], decide: ['projectId', 'stepId', 'token', 'decision', 'comment'], answer: ['projectId', 'stepId', 'questionId', 'text'], note: ['projectId', 'stepId', 'text'], retry: ['projectId', 'stepId'], pause: ['projectId'], resume: ['projectId'] };
+const keys = { create: ['title', 'brief', 'sourceText', 'figmaUrl', 'designSystemUrl', 'specialists'], decide: ['projectId', 'stepId', 'token', 'decision', 'comment'], answer: ['projectId', 'stepId', 'questionId', 'text'], note: ['projectId', 'stepId', 'text'], retry: ['projectId', 'stepId'], pause: ['projectId'], resume: ['projectId'], discard: ['projectId'] };
 export function validateProjectOperation(body) {
   const invalid = () => { throw new ApiError(400, 'invalid_input', 'Enter valid project action details.'); };
   if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(k => !['operationId', 'action', 'input'].includes(k)) || !uuid(body.operationId) || !Object.hasOwn(keys, body.action)) invalid();
@@ -21,7 +21,7 @@ export async function loadProject(sql, id) {
   const rows = await sql`SELECT data FROM virtual_team_projects WHERE id = ${id}::uuid`;
   const project = rows[0]?.data;
   if (!project) throw new ApiError(404, 'project_missing', 'This project could not be found.');
-  if (project.version !== 1 || !Array.isArray(project.artifacts) || !project.steps || WORKFLOW_STEPS.some(s => !project.steps[s.id])) throw new ApiError(503, 'invalid_project', 'The project could not be loaded safely. Its data was preserved.');
+  if (project.version !== 1 || ![undefined, 1, 2].includes(project.workflowVersion) || !Array.isArray(project.artifacts) || !project.steps || workflowSteps(project).some(s => !project.steps[s.id])) throw new ApiError(503, 'invalid_project', 'The project could not be loaded safely. Its data was preserved.');
   return project;
 }
 export async function saveProject(sql, project) {
@@ -58,7 +58,7 @@ export async function projectSnapshot(sql, enabled = true) {
     const revisions = await tx`SELECT revision FROM virtual_team_workspaces WHERE id = 'default'`;
     const workers = await tx`SELECT instance_id, heartbeat_at, status, capabilities FROM virtual_team_worker WHERE id = 'sam'`;
     const worker = workers[0], lastSeen = worker ? new Date(worker.heartbeat_at).getTime() : null;
-    return { revision: Number(revisions[0]?.revision || 0), projects: rows.map(row => publicProject(row.data)), runtime: { enabled, online: enabled && worker?.capabilities?.includes('project_documents') && worker?.status === 'online' && Date.now() - lastSeen < LEASE_MS, lastSeen, capabilities: WORKFLOW_CAPABILITIES } };
+    return { revision: Number(revisions[0]?.revision || 0), projects: rows.filter(row => !row.data.discardedAt).map(row => publicProject(row.data)), runtime: { enabled, online: enabled && worker?.capabilities?.includes('project_documents') && worker?.status === 'online' && Date.now() - lastSeen < LEASE_MS, lastSeen, capabilities: WORKFLOW_CAPABILITIES } };
   });
 }
 export async function claimProjectStep(sql, owner) {

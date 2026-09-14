@@ -1,5 +1,19 @@
 # Project workflow implementation
 
+## Local rebuild — awaiting owner review
+
+Do not push or deploy until the owner explicitly authorizes it. The previous production office pilot was discarded and its production worker stopped. Local UI runs at `http://localhost:5180` against the separate `virtual_team_qa` database. `.env.development.local` and `DEVELOPMENT_DATABASE_NAME` guard this separation.
+
+New projects use workflow version 2 with six core roles: Nora coordinates requirements, Maya owns UX/design, Sam implements, Ava reviews design, Theo reviews engineering and Noor tests. Select Milo, Eden or Alex explicitly at kickoff to add motion planning, design-system assessment or delivery oversight. Other specialists retain profiles and skills; dedicated code/security/performance execution remains future work. Legacy project definitions and exact-version decisions are preserved.
+
+The default planning sequence is Nora PRD → Theo review → owner scope approval → Maya UX/foundations → Ava review → owner direction approval. Milo and Eden add their requested deliverables; no specialist work is silently marked complete. Figma screens and implementation remain separate approval gates with missing execution tools clearly blocked. New project coding is assigned to Sam, reviewed by Theo, followed by Maya design QA and Noor functional QA, Nora acceptance and owner delivery approval. Alex participates only when selected.
+
+The UI groups stages into five phases, shows current work and progress, renders safe Markdown tables/lists/links, retains kickoff drafts, puts owner decisions above their versioned documents and allows discarding a project. Discard stops future claims, invalidates active work and removes the project from the active list while retaining its audit records.
+
+Local worker: `SAM_ENV_FILE=.env.worker.dev.local npm run worker:start`. It uses `.sam/development`, the isolated QA database, the local Git HEAD and publication disabled. Make a local commit before testing agent reads of changed source; no push is needed. Stop with the same environment file and `npm run worker:stop`.
+
+## Earlier production foundation
+
 The production office at `https://virtual-team-lilac.vercel.app` is the interface for projects, handoffs, questions and approvals. Records are saved in Neon through authenticated Vercel Functions. Execution remains on the owner's computer using the existing Codex sign-in. This is one shared private workspace; it is not a per-user role/permission system.
 
 ## Connected in this release
@@ -21,7 +35,7 @@ Figma editing and Figma review require an authorized connection to a particular 
 
 Sam's earlier standalone coding tasks remain available in his agent panel with their existing exact-diff PR approval and manual GitHub merge flow. They do not silently satisfy a project implementation, QA or release gate.
 
-The office redesign and expansion to 20 physical characters are the first project's scope. This workflow release preserves the existing six-avatar environment while the PRD awaits approval.
+The earlier expansion pilot is discarded. The six physical office characters now represent the core team; all twenty profiles and saved conversations remain available.
 
 ## Reviews and changes
 

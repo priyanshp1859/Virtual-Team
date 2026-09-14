@@ -1,6 +1,8 @@
 # Virtual Team — proposed project workflow
 
-Accepted direction · 14 September 2026
+Historical full-team direction · 14 September 2026
+
+Superseded for new projects by the six-core-agent local rebuild in [PROJECT_WORKFLOW.md](PROJECT_WORKFLOW.md). Kept as historical context, not the current default assignment plan. No push or deployment is authorized.
 
 Implementation status: see [PROJECT_WORKFLOW.md](PROJECT_WORKFLOW.md). This document describes the full target workflow.
 

@@ -21,6 +21,35 @@ export const WORKFLOW_STEPS = [
   { id: 'delivery_approval', title: 'Your final delivery approval', agentId: 'owner', kind: 'approval', needs: ['coo_review'], returnTo: 'implementation' },
 ];
 export const WORKFLOW_STATUS = { locked: 'Waiting on earlier work', queued: 'Queued', working: 'Working', waiting_for_user: 'Needs your answer', needs_approval: 'Awaiting your approval', completed: 'Completed', blocked: 'Blocked', failed: 'Needs attention', interrupted: 'Interrupted', cancelled: 'Stopped' };
+export const CORE_TEAM = ['nora', 'maya', 'sam', 'ava', 'theo', 'noor'];
+export const PROJECT_SPECIALISTS = [
+  { id: 'milo', name: 'Milo', role: 'Motion design', purpose: 'Add a motion specification and include it in Ava’s review.' },
+  { id: 'eden', name: 'Eden', role: 'Design systems', purpose: 'Assess substantial design-system work before Maya plans the experience.' },
+  { id: 'alex', name: 'Alex', role: 'Delivery oversight', purpose: 'Add a delivery-readiness review before your final decision.' },
+];
+// Saved projects retain their original reviewers and approval dependencies.
+export function workflowSteps(project) {
+  if (project?.workflowVersion !== 2) return WORKFLOW_STEPS;
+  const specialists = project.specialists || [];
+  return WORKFLOW_STEPS.filter(d => d.id !== 'code_review' && (d.id !== 'motion_plan' || specialists.includes('milo')) && (d.id !== 'design_system' || specialists.includes('eden')) && (d.id !== 'coo_review' || specialists.includes('alex'))).map(d => {
+    const step = { ...d, needs: [...d.needs] };
+    if (d.id === 'prd') step.guidance += ' Keep the first PRD focused: aim for 600–1000 words with a short summary, numbered requirements and a compact acceptance checklist. Do not design the entire organisation or repeat the workflow documentation. Missing future tools belong under dependencies; they do not justify invented deliverables.';
+    if (d.id === 'ux_plan') { step.needs = [specialists.includes('eden') ? 'design_system' : 'scope_approval']; step.guidance += ' Assess and reuse existing design foundations as part of this plan when Eden is not assigned. Keep the deliverable concise and actionable.'; }
+    if (d.id === 'concept_review') { step.needs = [specialists.includes('eden') ? 'design_system' : null, 'ux_plan', specialists.includes('milo') ? 'motion_plan' : null].filter(Boolean); step.returnTo = specialists.includes('eden') ? 'design_system' : 'ux_plan'; }
+    if (d.id === 'foundation_approval') step.returnTo = specialists.includes('eden') ? 'design_system' : 'ux_plan';
+    if (d.id === 'implementation') step.agentId = 'sam';
+    if (d.id === 'engineering_review') step.needs = ['implementation'];
+    if (d.id === 'delivery_approval') step.needs = [specialists.includes('alex') ? 'coo_review' : 'product_acceptance'];
+    return step;
+  });
+}
+export const WORKFLOW_PHASES = [
+  { title: 'Requirements', ids: ['prd', 'prd_review', 'scope_approval'] },
+  { title: 'Design direction', ids: ['design_system', 'ux_plan', 'motion_plan', 'concept_review', 'foundation_approval'] },
+  { title: 'Screen designs', ids: ['figma_design', 'design_review', 'design_approval'] },
+  { title: 'Build & test', ids: ['implementation', 'code_review', 'engineering_review', 'design_qa', 'functional_qa'] },
+  { title: 'Delivery', ids: ['product_acceptance', 'coo_review', 'delivery_approval'] },
+];
 export const WORKFLOW_CAPABILITIES = { document: true, review: true, figma: false, figma_review: false, workflow_code: false, code_review: false, visual_qa: false, browser_qa: false };
 export const CAPABILITY_REASON = {
   figma: 'A Figma file and an authorized editing connection are required before Maya can create real screens.',
@@ -30,4 +59,4 @@ export const CAPABILITY_REASON = {
   visual_qa: 'Visual QA needs the approved design, a matching preview and browser access.',
   browser_qa: 'Functional QA needs the implementation preview and a connected browser test environment.',
 };
-export const OFFICE_PROJECT_BRIEF = `Improve the Virtual Team office itself. Keep desktop and tablet support from 768px; no phone layout. Improve the interface and user experience for project kickoff, agent chats, task handoffs, questions, reviews and owner approvals. Make department and agent activity easy to understand. Plan a larger 3D office with clear rooms, navigation and a seat/visible character for each of the 20 agents. Include motion designer Milo to make transitions and interactive feedback delightful, useful, accessible and lightweight. Preserve reduced motion and pause unnecessary rendering while hidden. Do not reintroduce the wandering dog, walking conversations or playable arcade game. Preserve cloud persistence, private access and existing conversations. The owner gives final approval after lead review at each required stage. Nora creates the PRD first. Designers receive the approved PRD, Ava reviews design, then the owner reviews before frontend implementation. Engineering review precedes parallel design and functional QA, then PM acceptance, COO readiness and final owner approval. Figma links and design-system choice are inputs to resolve during design; do not assume access or invent completed research. This brief authorizes planning; it does not approve a PRD, visual direction, design or release.`;
+export const OFFICE_PROJECT_BRIEF = `Improve the Virtual Team office itself. Keep desktop and tablet support from 768px; no phone layout. Improve the interface and user experience for project kickoff, agent chats, task handoffs, questions, reviews and owner approvals. Make department and agent activity easy to understand. Keep six core agents visible in the 3D office and all twenty profiles available. Make core roles and on-demand specialists clear. Assess room usability without automatically expanding to twenty physical characters. Include motion designer Milo to make transitions and interactive feedback delightful, useful, accessible and lightweight. Preserve reduced motion and pause unnecessary rendering while hidden. Do not reintroduce the wandering dog, walking conversations or playable arcade game. Preserve cloud persistence, private access and existing conversations. The owner gives final approval after lead review at each required stage. Nora creates the PRD first. Designers receive the approved PRD, Ava reviews design, then the owner reviews before frontend implementation. Engineering review precedes parallel design and functional QA, then PM acceptance and final owner approval. Add COO oversight only when explicitly selected. Figma links and design-system choice are inputs to resolve during design; do not assume access or invent completed research. This brief authorizes planning; it does not approve a PRD, visual direction, design or release.`;

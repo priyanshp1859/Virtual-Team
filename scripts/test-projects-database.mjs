@@ -31,11 +31,15 @@ try {
  await updateProjectClaim(sql, job.claim, p => completeStep(p, job.claim, { title: 'PRD', body: 'QA document.', outcome: 'submitted' }));
  const review = await claimProjectStep(sql, owner); assert.equal(review.claim.stepId, 'prd_review');
  await updateProjectClaim(sql, review.claim, p => completeStep(p, review.claim, { title: 'Feasibility review', body: 'QA review evidence.', outcome: 'approved' }));
- let p = (await projectSnapshot(sql)).projects[0]; assert.equal(p.steps.scope_approval.status, 'needs_approval'); assert.equal(p.steps.design_system.status, 'locked');
+ let p = (await projectSnapshot(sql)).projects[0]; assert.equal(p.steps.scope_approval.status, 'needs_approval'); assert.equal(p.steps.ux_plan.status, 'locked');
  const decision = op('decide', { projectId: p.id, stepId: 'scope_approval', token: p.steps.scope_approval.token, decision: 'approved' });
  await Promise.all([mutateProject(sql, decision), mutateProject(sql, decision)]);
- p = (await projectSnapshot(sql)).projects[0]; assert.equal(p.steps.design_system.status, 'queued'); assert.equal(p.artifacts.filter(a => a.authorId === 'owner').length, 1);
+ p = (await projectSnapshot(sql)).projects[0]; assert.equal(p.steps.ux_plan.status, 'queued'); assert.equal(p.artifacts.filter(a => a.authorId === 'owner').length, 1);
  assert.deepEqual((await readWorkspace(repository)).state, before);
  assert.equal((await projectSnapshot(sql)).runtime.online, true);
+ const discard = op('discard', { projectId: p.id });
+ await Promise.all([mutateProject(sql, discard), mutateProject(sql, discard)]);
+ assert.equal((await projectSnapshot(sql)).projects.length, 0); assert((await loadProject(sql, p.id)).discardedAt);
+ assert.equal(await claimProjectStep(sql, owner), null); assert.deepEqual((await readWorkspace(repository)).state, before);
  console.log('PASS: real database idempotency, exclusive claims, rollback, independent handoff, exact approval, queue progression and preservation of existing tasks.');
 } finally { await pool.end(); await admin.unsafe(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); await admin.end(); }

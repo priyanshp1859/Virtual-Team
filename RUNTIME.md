@@ -1,5 +1,7 @@
 # Sam's local worker
 
+Current development: use `.env.worker.dev.local`, the isolated QA database and `.sam/development` with publishing disabled. Start/stop with `SAM_ENV_FILE=.env.worker.dev.local npm run worker:start` or `worker:stop`. The production pilot is discarded and its worker must stay stopped. Do not push or deploy without explicit owner authorization.
+
 The Vercel office and Neon database are the shared interface and durable queue. A Node.js worker on the owner's computer starts Codex App Server over private stdio. Sam uses the existing ChatGPT Codex login; no model credential is sent to Vercel or the browser. This first worker is verified on macOS with Node 22 and Codex CLI 0.154.0.
 
 ## Workflow
