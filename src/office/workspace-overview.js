@@ -5,8 +5,8 @@ import './workspace-overview.css';
 export function createWorkspaceOverview({ mount, store, onOpenTask, onNewTask }) {
   const groups = [
     { id: 'queued', label: 'Queued', statuses: ['queued'] },
-    { id: 'working', label: 'Working', statuses: ['working'] },
-    { id: 'attention', label: 'Needs you', statuses: ['waiting_for_user', 'changes_requested'] },
+    { id: 'working', label: 'Working', statuses: ['working', 'publishing'] },
+    { id: 'attention', label: 'Needs you', statuses: ['waiting_for_user', 'changes_requested', 'failed', 'interrupted'] },
     { id: 'review', label: 'In review', statuses: ['in_review'] },
   ];
   let expanded = false, filter = 'all';
@@ -36,10 +36,10 @@ export function createWorkspaceOverview({ mount, store, onOpenTask, onNewTask })
   });
 
   function render() {
-    const { tasks, connectionStatus } = store.getState();
+    const { tasks, connectionStatus, runtime } = store.getState();
     $('.work-queue-heading p').textContent = connectionStatus === 'error'
       ? 'Showing the last confirmed save. Refresh to reconnect. Agents are not connected.'
-      : 'Saved to your private workspace. Agents are not connected.';
+      : runtime?.enabled ? `Sam is ${runtime.online ? 'connected' : 'offline'}. Other agents are not connected yet.` : 'Saved to your private workspace. Agents are not connected.';
     groups.forEach((group, i) => {
       const count = tasks.filter(task => group.statuses.includes(task.status)).length;
       countButtons[i].querySelector('strong').textContent = count;

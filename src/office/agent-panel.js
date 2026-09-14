@@ -1,6 +1,7 @@
 import { AGENTS } from './config.js';
 import { STATUS_LABELS } from './cloud-store.js';
 import './agent-panel.css';
+import './runtime.css';
 
 const TABS = ['chat', 'tasks', 'review'];
 const el = (tag, className, text) => {
@@ -65,6 +66,8 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   const agent = () => AGENTS.find(item => item.id === agentId);
   const tasks = () => snapshot.tasks.filter(task => task.agentId === agentId).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const currentTask = () => snapshot.tasks.find(task => task.id === selectedTasks.get(agentId) && task.agentId === agentId) || null;
+  const connectedAgent = () => agentId === 'sam' && snapshot.runtime?.enabled;
+  const currentExecution = () => connectedAgent() ? currentTask()?.execution || (!currentTask() ? snapshot.runtime?.general : null) : null;
   const draftKey = () => `${agentId}:${currentTask()?.id || 'general'}`;
 
   mount.classList.add('agent-workspace'); mount.hidden = true;
@@ -127,6 +130,15 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     mutate(() => store.advanceSample(task.id), () => { if (agentId === owner && task.status === 'changes_requested') setTab('review'); });
   });
   sampleBar.append(sampleCopy, sampleAction);
+  const runBar = el('div', 'aw-run-bar'); runBar.hidden = true; runBar.dataset.testid = 'runtime-controls';
+  const runCopy = el('div', 'aw-run-copy'); const runTitle = el('strong'); const runDetail = el('p'); runCopy.append(runTitle, runDetail);
+  const runAction = button('Start Sam', 'aw-small-button'); runAction.dataset.testid = 'runtime-action';
+  runAction.addEventListener('click', () => {
+    const task = currentTask(), execution = currentExecution();
+    const active = ['queued', 'working', 'waiting_for_user', 'publishing'].includes(execution?.status);
+    mutate(() => active ? store.cancelRun(task?.id) : store.runTask(task?.id));
+  });
+  runBar.append(runCopy, runAction);
   const log = el('div', 'aw-messages'); log.setAttribute('role', 'log'); log.setAttribute('aria-label', 'Conversation messages'); log.setAttribute('aria-live', 'polite'); log.dataset.testid = 'chat-messages';
   const composerForm = el('form', 'aw-composer');
   const composerLabel = el('label', 'aw-field-label'); composerLabel.htmlFor = 'aw-message';
@@ -142,7 +154,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   const keyboardHint = el('p', 'aw-keyboard-hint', 'Enter to send · Shift + Enter for a new line');
   composerForm.append(composerLabel, composer, composerFoot, keyboardHint);
   composerForm.addEventListener('submit', event => { event.preventDefault(); sendMessage(); });
-  chat.append(context, sampleBar, log, composerForm);
+  chat.append(context, sampleBar, runBar, log, composerForm);
 
   const taskSection = sections.get('tasks');
   const taskHeader = el('div', 'aw-section-heading');
@@ -203,7 +215,8 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
   function sendMessage() {
     const text = composer.value.trim(); if (!text || pending) return;
     const key = composerKey; const task = currentTask(); const owner = agentId;
-    mutate(() => store.sendMessage({ agentId: owner, taskId: task?.id || null, text }), () => {
+    const questionId = currentExecution()?.question?.id;
+    mutate(() => store.sendMessage({ agentId: owner, taskId: task?.id || null, text, ...(questionId ? { questionId } : {}) }), () => {
       drafts.delete(key);
       if (composerKey === key) { composer.value = ''; sendButton.disabled = true; composer.focus(); }
     });
@@ -217,8 +230,9 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     if (!reviewTarget) return;
     const comment = feedback.value.trim();
     if (decision === 'changes_requested' && !comment) { showError('Add feedback so the requested changes are clear.'); feedback.focus(); return; }
-    const { taskId, revision } = reviewTarget; const key = feedbackKey;
-    mutate(() => store.decideReview(taskId, { revision, decision, ...(comment ? { comment } : {}) }), () => { feedbackDrafts.delete(key); if (feedbackKey === key) feedback.value = ''; });
+    const { taskId, revision, digest } = reviewTarget; const key = feedbackKey;
+    const input = { revision, decision, ...(comment ? { comment } : {}) };
+    mutate(() => digest ? store.reviewRun(taskId, { ...input, digest }) : store.decideReview(taskId, input), () => { feedbackDrafts.delete(key); if (feedbackKey === key) feedback.value = ''; });
   }
   function setTab(next) {
     if (!TABS.includes(next)) return;
@@ -244,7 +258,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       const actions = [newTaskButton()]; if (agentId === 'sam' && !task) actions.push(sampleButton());
       log.append(emptyState(`A little context goes a long way.`, task
         ? 'Add a note or question for this assignment. Your message will be saved with the task.'
-        : `Give ${agent().name} an assignment, or leave a message for later. Nothing is sent to an AI agent yet.`, actions));
+        : connectedAgent() ? 'Talk with Sam about this repository, or create a task when you want him to change code.' : `Give ${agent().name} an assignment, or leave a message for later. Nothing is sent to an AI agent yet.`, actions));
     }
     for (const message of messages) {
       const item = el('article', `aw-message aw-message--${message.role}`); item.dataset.messageId = message.id;
@@ -255,7 +269,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       const time = el('time', '', stamp(message.createdAt)); time.dateTime = new Date(message.createdAt).toISOString(); time.title = stamp(message.createdAt, true); meta.append(time);
       const body = el('p', 'aw-message-text', message.text);
       item.append(meta, body);
-      if (message.role === 'user' && message.delivery !== 'sample') item.append(el('span', 'aw-message-delivery', 'Saved to cloud · not sent to an agent'));
+      if (message.role === 'user' && message.delivery !== 'sample') item.append(el('span', 'aw-message-delivery', connectedAgent() && !task?.isSample ? 'Saved to Sam’s conversation' : 'Saved to cloud · not sent to an agent'));
       if (task) item.setAttribute('aria-label', `${who}, ${task.title}`);
       log.append(item);
     }
@@ -297,6 +311,12 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     const top = el('div', 'aw-review-top'); top.append(badge(task.status, snapshot.storageAvailable), el('span', 'aw-revision', `Revision ${review.revision}`));
     reviewContent.append(top, el('h3', 'aw-review-heading', task.title));
     if (review.isSample || task.isSample) reviewContent.append(el('p', 'aw-sample-notice', 'Sample review · illustrative code, no project files changed.'));
+    else {
+      reviewContent.append(el('p', 'aw-live-notice', `Actual code changes · ${review.branch} · ${review.commit?.slice(0, 7) || ''}`));
+      if (review.pullRequestUrl && /^https:\/\/github\.com\/priyanshp1859\/Virtual-Team\/pull\/\d+$/.test(review.pullRequestUrl)) {
+        const link = el('a', 'aw-button aw-primary', 'Open pull request ↗'); link.href = review.pullRequestUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; reviewContent.append(link);
+      }
+    }
     reviewContent.append(el('p', 'aw-review-summary', review.summary));
     for (const file of review.files || []) {
       const fileBlock = el('section', 'aw-diff-file');
@@ -318,15 +338,15 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
       reviewContent.append(checks);
     }
     if (task.status === 'in_review' && !review.decision) {
-      reviewTarget = { taskId: task.id, revision: review.revision }; reviewForm.hidden = false;
+      reviewTarget = { taskId: task.id, revision: review.revision, digest: review.digest }; reviewForm.hidden = false;
       const nextFeedbackKey = `${task.id}:${review.revision}`;
       if (feedbackKey !== nextFeedbackKey) { if (feedbackKey) feedbackDrafts.set(feedbackKey, feedback.value); feedbackKey = nextFeedbackKey; feedback.value = feedbackDrafts.get(feedbackKey) || ''; }
     } else {
       const receipt = el('section', 'aw-decision');
       const approved = review.decision === 'approved' || task.status === 'completed';
-      receipt.append(el('strong', '', approved ? 'Approved' : 'Changes requested'));
+      receipt.append(el('strong', '', approved ? 'Approved' : review.decision === 'changes_requested' ? 'Changes requested' : 'Previous revision'));
       if (review.comment) receipt.append(el('p', '', review.comment));
-      receipt.append(el('p', 'aw-help', 'Your decision is saved to your workspace. No files were changed.'));
+      receipt.append(el('p', 'aw-help', review.isSample ? 'Your decision is saved to your workspace. No files were changed.' : approved ? 'Your exact approval is saved. The pull request requires a manual merge in GitHub.' : 'Sam will use your feedback for the next revision. The live site is unchanged.'));
       if (task.status === 'changes_requested' && task.isSample) {
         const revise = button('Preview revised result →', 'aw-button aw-primary'); revise.dataset.testid = 'revise-sample'; revise.addEventListener('click', () => mutate(() => store.advanceSample(task.id))); receipt.append(revise);
       }
@@ -344,9 +364,12 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     const person = agent(); if (!person) return;
     const agentTasks = tasks(); const task = currentTask();
     name.textContent = person.name; role.textContent = person.role; avatar.textContent = person.name[0]; avatar.style.setProperty('--agent-color', person.color); renderPresence();
-    connectionNote.textContent = 'Chats and tasks are saved to your private workspace.';
-    taskQueueHelp.textContent = 'Saved to your workspace queue. No agent is connected to execute this task yet.';
-    approvalNote.textContent = 'Saves this decision to your workspace. No files are changed.';
+    offline.textContent = connectedAgent() ? snapshot.runtime.online ? 'Connected' : 'Worker offline' : 'Not connected';
+    offline.dataset.online = String(Boolean(connectedAgent() && snapshot.runtime.online));
+    connectionNote.textContent = connectedAgent() ? snapshot.runtime.online ? 'Codex on your computer · Virtual-Team repository' : 'Chats are saved. Sam runs while this computer’s worker is online.' : 'Chats and tasks are saved to your private workspace.';
+    taskQueueHelp.textContent = connectedAgent() ? 'Sam works in an isolated copy of Virtual-Team. Review the actual code before publishing.' : 'Saved to your workspace queue. No agent is connected to execute this task yet.';
+    approvalNote.textContent = task?.review?.digest ? 'Approves this exact revision and creates a GitHub pull request. Merge it in GitHub to deploy.' : 'Saves this decision to your workspace. No files are changed.';
+    approveButton.textContent = task?.review?.digest ? 'Approve & create PR' : 'Approve';
     storageWarning.hidden = !snapshot.persistenceError;
     storageWarning.textContent = snapshot.persistenceError || '';
     const counts = { chat: snapshot.messages.filter(message => message.agentId === agentId).length, tasks: agentTasks.length, review: agentTasks.filter(item => item.status === 'in_review').length };
@@ -366,6 +389,15 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     if (briefTaskId !== task?.id) { briefTaskId = task?.id; contextBrief.open = false; }
     contextBrief.hidden = !task?.brief; briefBody.textContent = task?.brief || '';
     sampleBar.hidden = !task?.isSample;
+    const execution = currentExecution();
+    runBar.hidden = !connectedAgent() || task?.isSample || (!task && !execution);
+    if (!runBar.hidden) {
+      runTitle.textContent = execution?.question?.text || execution?.activity || STATUS_LABELS[execution?.status] || 'Ready for Sam';
+      runDetail.textContent = execution?.error || (execution?.question ? 'Reply in the chat below to continue.' : execution?.status === 'in_review' ? 'Open Review to inspect the actual code changes.' : !snapshot.runtime.online ? 'The worker is offline. Saved work will wait here.' : task?.review?.decision === 'approved' ? 'The approved code will be shared as a pull request.' : 'Changes stay in an isolated branch until you review them.');
+      runAction.textContent = ['queued', 'working', 'waiting_for_user', 'publishing'].includes(execution?.status) ? 'Stop' : ['failed', 'interrupted', 'cancelled'].includes(execution?.status) ? 'Retry' : 'Start Sam';
+      runAction.hidden = ['in_review', 'completed', 'publishing'].includes(execution?.status);
+      runAction.disabled = pending;
+    }
     if (task?.isSample) {
       sampleCopy.replaceChildren(el('strong', '', 'Sample · no files change'));
       const descriptions = { working: 'Step through an illustrative agent workflow.', waiting_for_user: 'Reply below to continue the sample.', in_review: 'A sample result is ready for your decision.', changes_requested: 'Your feedback is saved. Preview a revision next.', completed: 'This sample workflow is complete.' };
@@ -375,9 +407,9 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     const nextKey = draftKey();
     if (nextKey !== composerKey) { saveDraft(); composerKey = nextKey; composer.value = drafts.get(nextKey) || ''; }
     composerLabel.textContent = `Message ${person.name}`;
-    composer.placeholder = task?.status === 'waiting_for_user' ? `Reply to ${person.name}’s sample question…` : `Leave a message for ${person.name}…`;
+    composer.placeholder = task?.status === 'waiting_for_user' || execution?.question ? `Reply to ${person.name}’s question…` : `Message ${person.name}…`;
     sendButton.disabled = pending || !composer.value.trim();
-    deliveryNote.textContent = pending ? 'Saving to workspace…' : snapshot.persistenceError ? 'Save needs attention · draft retained' : task?.isSample ? 'Sample conversation · cloud saved' : 'Cloud workspace · agent offline';
+    deliveryNote.textContent = pending ? 'Saving to workspace…' : snapshot.persistenceError ? 'Save needs attention · draft retained' : task?.isSample ? 'Sample conversation · cloud saved' : connectedAgent() ? snapshot.runtime.online ? 'Sam connected · cloud saved' : 'Worker offline · messages saved' : 'Cloud workspace · agent offline';
     if (formAgent !== agentId) {
       saveTaskDraft(); formAgent = agentId; const draft = taskDrafts.get(agentId) || {};
       titleInput.value = draft.title || ''; briefInput.value = draft.brief || ''; taskForm.hidden = true;
@@ -385,6 +417,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     renderMessages(task); renderTasks(agentTasks); renderReview(task);
     const cannotSave = pending || snapshot.connectionStatus === 'saving' || !snapshot.authenticated || snapshot.revision < 0;
     for (const control of [queueTask, approveButton, changesButton, sampleAction]) control.disabled = cannotSave;
+    if (task?.review?.digest && !task.review.publishable) approveButton.disabled = true;
     for (const control of mount.querySelectorAll('[data-testid="start-sample"],[data-testid="revise-sample"]')) control.disabled = cannotSave;
     for (const control of [composer, titleInput, briefInput, feedback]) control.readOnly = pending;
     sendButton.disabled = cannotSave || !composer.value.trim();

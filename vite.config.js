@@ -3,11 +3,13 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export default defineConfig(({ mode }) => ({
+  // Keep CSS configuration inside this repository, including isolated agent clones.
+  css: { postcss: {} },
   plugins: [{
     name: 'virtual-team-local-api',
     configureServer(server) {
       const environment = loadEnv(mode, process.cwd(), '');
-      for (const key of ['DATABASE_URL', 'POSTGRES_URL', 'WORKSPACE_ACCESS_CODE', 'SESSION_SECRET']) {
+      for (const key of ['DATABASE_URL', 'POSTGRES_URL', 'WORKSPACE_ACCESS_CODE', 'SESSION_SECRET', 'SAM_RUNTIME_ENABLED']) {
         if (!process.env[key] && environment[key]) process.env[key] = environment[key];
       }
       server.middlewares.use(async (request, response, next) => {

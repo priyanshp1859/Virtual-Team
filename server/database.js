@@ -21,12 +21,14 @@ export async function getDatabase(config) {
 
 export function createRepository(sql) {
   return {
+    sql,
     async getWorkspace() {
       const rows = await sql`SELECT state, revision FROM virtual_team_workspaces WHERE id = 'default'`;
       return rows.length ? { state: rows[0].state, revision: Number(rows[0].revision) } : { state: structuredClone(EMPTY_STATE), revision: 0 };
     },
     async transaction(callback) {
       return sql.begin(async (tx) => callback({
+        sql: tx,
         async lockWorkspace() {
           await tx`INSERT INTO virtual_team_workspaces (id, state) VALUES ('default', ${tx.json(EMPTY_STATE)}) ON CONFLICT (id) DO NOTHING`;
           const [row] = await tx`SELECT state, revision FROM virtual_team_workspaces WHERE id = 'default' FOR UPDATE`;

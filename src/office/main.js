@@ -113,6 +113,8 @@ signOutButton.addEventListener('click', async () => {
 });
 window.addEventListener('focus', refreshWorkspace);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshWorkspace(); });
+// Poll only the visible, signed-in office. No animation loop performs API work.
+setInterval(() => { if (!document.hidden && workspace.getState().runtime?.enabled) refreshWorkspace(); }, 3000);
 
 function announce(text) { $('announcement').textContent = text; }
 
@@ -154,11 +156,13 @@ function overview() {
 }
 
 function updateTeamTasks() {
-  const { tasks } = workspace.getState();
+  const { tasks, runtime } = workspace.getState();
+  const prototypeNote = document.querySelector('.prototype-note');
+  if (prototypeNote) prototypeNote.textContent = runtime?.enabled ? `Sam ${runtime.online ? 'connected' : 'offline'} · other agents and meetings are previews.` : 'Office preview · no live agents or microphone.';
   AGENTS.forEach(agent => {
     const button = document.querySelector(`#team-list [data-agent="${agent.id}"]`);
     const assigned = tasks.filter(task => task.agentId === agent.id && task.status !== 'completed');
-    const needsAttention = assigned.some(task => ['waiting_for_user', 'in_review', 'changes_requested'].includes(task.status));
+    const needsAttention = assigned.some(task => ['waiting_for_user', 'in_review', 'changes_requested', 'failed', 'interrupted'].includes(task.status));
     let badge = button.querySelector('.agent-task-count');
     if (!badge) { badge = document.createElement('span'); button.insertBefore(badge, button.querySelector('.person-presence')); }
     badge.className = `agent-task-count${needsAttention ? ' needs-attention' : ''}`;
@@ -167,9 +171,11 @@ function updateTeamTasks() {
     badge.setAttribute('aria-label', `${assigned.length} unfinished tasks${needsAttention ? ', needs your attention' : ''}`);
     const latest = assigned.toSorted((a, b) => b.updatedAt - a.updatedAt)[0];
     const presence = button.querySelector('.person-presence');
-    presence.className = 'person-presence disconnected';
-    presence.setAttribute('aria-label', 'Agent not connected');
-    button.title = latest ? `${STATUS_LABELS[latest.status]}${latest.isSample ? ' · sample' : ''} · Agent not connected` : 'Agent not connected';
+    const connected = agent.id === 'sam' && runtime?.online;
+    const connection = connected ? 'Sam connected' : agent.id === 'sam' && runtime?.enabled ? 'Worker offline' : 'Agent not connected';
+    presence.className = `person-presence ${connected ? 'connected' : 'disconnected'}`;
+    presence.setAttribute('aria-label', connection);
+    button.title = latest ? `${STATUS_LABELS[latest.status]}${latest.isSample ? ' · sample' : ''} · ${connection}` : connection;
   });
 }
 

@@ -1,4 +1,4 @@
-export const STATUS_LABELS = Object.freeze({ queued: 'Queued', working: 'Working', waiting_for_user: 'Needs your answer', in_review: 'Ready for review', changes_requested: 'Changes requested', completed: 'Completed' });
+export const STATUS_LABELS = Object.freeze({ queued: 'Queued', working: 'Working', waiting_for_user: 'Needs your answer', in_review: 'Ready for review', changes_requested: 'Changes requested', completed: 'Completed', failed: 'Needs attention', interrupted: 'Interrupted', cancelled: 'Stopped', publishing: 'Creating pull request' });
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const empty = () => ({ version: 1, tasks: [], messages: [] });
@@ -119,6 +119,9 @@ export function createCloudStore({ fetch: fetcher = globalThis.fetch.bind(global
     startSample: (agentId = 'sam') => mutate('startSample', { agentId }),
     advanceSample: taskId => mutate('advanceSample', { taskId }),
     decideReview: (taskId, input) => mutate('decideReview', { taskId, ...input }),
+    runTask: taskId => mutate('runTask', { taskId: taskId || 'sam:general' }),
+    cancelRun: taskId => mutate('cancelRun', { taskId: taskId || 'sam:general' }),
+    reviewRun: (taskId, input) => mutate('reviewRun', { taskId, ...input }),
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     dispose() { disposed = true; sessionEpoch++; listeners.clear(); retries.clear(); data = empty(); },
   };

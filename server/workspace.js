@@ -7,10 +7,13 @@ export const EMPTY_STATE = Object.freeze({ version: 1, tasks: [], messages: [] }
 export const MAX_STATE_BYTES = 2_000_000;
 const ACTION_KEYS = {
   createTask: ['agentId', 'title', 'brief'],
-  sendMessage: ['agentId', 'taskId', 'text'],
+  sendMessage: ['agentId', 'taskId', 'text', 'questionId'],
   startSample: ['agentId'],
   advanceSample: ['taskId'],
   decideReview: ['taskId', 'revision', 'decision', 'comment'],
+  runTask: ['taskId'],
+  cancelRun: ['taskId'],
+  reviewRun: ['taskId', 'revision', 'digest', 'decision', 'comment'],
 };
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
@@ -120,7 +123,10 @@ export async function mutateWorkspace(repository, body, options) {
       return { state: publicState(validateStoredState(current.state)), revision: current.revision, result: previous.result };
     }
     if (!Number.isSafeInteger(current.revision) || current.revision < 0 || current.revision >= Number.MAX_SAFE_INTEGER) throw new ApiError(503, 'invalid_revision', 'This workspace revision could not be loaded safely.');
-    const next = applyOperation(current.state, operation, options);
+    const next = options?.runtime && ['runTask', 'cancelRun', 'reviewRun'].includes(operation.action)
+      ? { state: current.state, result: await options.runtime.command(tx.sql, current.state, operation) }
+      : applyOperation(current.state, operation, options);
+    if (options?.runtime) await options.runtime.afterOperation(tx.sql, next.state, operation, next.result);
     const revision = current.revision + 1;
     await tx.saveWorkspace(next.state, revision);
     await tx.saveOperation({ ...operation, result: next.result, revision });
