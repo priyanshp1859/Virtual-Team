@@ -10,6 +10,7 @@ const btn = (text, action, cls = 'ws-button', testid) => { const n = el('button'
 const name = id => id === 'owner' ? 'You' : AGENTS.find(a => a.id === id)?.name || 'The team';
 const stamp = time => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(time || Date.now());
 const tag = (text, tone = 'neutral') => el('span', `ws-tag ws-tag--${tone}`, text);
+const httpsReference = value => { try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password; } catch { return false; } };
 const small = text => el('p', 'ws-muted', text);
 const heading = (title, description, action) => { const n = el('div', 'ws-heading'), copy = el('div'); copy.append(el('p', 'ws-eyebrow', 'YOUR WORKSPACE'), el('h1', '', title), small(description)); n.append(copy); if (action) n.append(action); return n; };
 const panel = (title, note) => { const n = el('section', 'ws-panel'); if (title) n.append(el('h2', '', title)); if (note) n.append(small(note)); return n; };
@@ -33,7 +34,8 @@ export function createWorkspaceShell({ projectStore, workspaceStore, onOffice, o
   const all = () => preview ? samples : snapshot.projects;
   const selected = () => all().find(p => p.id === route.id);
   const active = () => activeProject(all());
-  const saveTabDraft = () => { try { sessionStorage.setItem('office-project-draft', JSON.stringify(draft)); } catch { /* Explicit cloud save remains available. */ } };
+  const draftKey = () => preview ? 'office-preview-draft' : 'office-project-draft';
+  const saveTabDraft = () => { try { sessionStorage.setItem(draftKey(), JSON.stringify(draft)); } catch { /* Explicit cloud save remains available. */ } };
   const newDraft = () => ({ title: '', brief: '', sourceText: '', figmaUrl: '', designSystemUrl: '', specialists: [], resources: [] });
   function error(message) { const old = mount.querySelector('.ws-error'); old?.remove(); const n = el('p', 'ws-error', message); n.setAttribute('role', 'alert'); mount.prepend(n); }
   async function act(fn) {
@@ -42,13 +44,13 @@ export function createWorkspaceShell({ projectStore, workspaceStore, onOffice, o
     finally { pending = false; mount.removeAttribute('aria-busy'); mount.querySelectorAll('button,input,textarea,select').forEach(n => n.disabled = false); }
   }
   function navigate(page, id, section) {
-    if (page === 'new' && !draft) { try { draft = JSON.parse(sessionStorage.getItem('office-project-draft')); } catch {} draft ||= newDraft(); }
+    if (page === 'new' && !draft) { try { draft = JSON.parse(sessionStorage.getItem(draftKey())); } catch {} draft ||= newDraft(); }
     route = { page, id, section }; signature = ''; onLeaveOffice(); modal.close();
     const params = new URLSearchParams({ page }); if (id) params.set('id', id); if (section) params.set('section', section); if (preview) params.set('preview', '1');
     history.replaceState(null, '', `${location.pathname}${location.search}#${params}`); render(true);
     if (page === 'office') onOffice(); else mount.querySelector('h1')?.focus({ preventScroll: true });
   }
-  function showPreview(value) { preview = value; if (value) samples = previewProjects(); query = ''; filter = 'all'; navigate('projects'); }
+  function showPreview(value) { draft = null; preview = value; if (value) samples = previewProjects(); query = ''; filter = 'all'; navigate('projects'); }
   function openWork(p, stepId) {
     if (!preview) { onOpenWork({ projectId: p.id, stepId: stepId || currentStep(p).id }); return; }
     modal.replaceChildren(el('p', 'ws-eyebrow', 'SCREEN PREVIEW · SAMPLE CONTENT'), el('h2', '', p.artifacts[0]?.title || 'Project work'));
@@ -118,7 +120,7 @@ export function createWorkspaceShell({ projectStore, workspaceStore, onOffice, o
     banner.append(copy, p ? btn('View project ↗', () => navigate('project', p.id), 'ws-text-button') : tag('No active project')); return banner;
   }
   function renderHome() {
-    mount.append(heading('Your projects, in view.', 'A place for every idea. A clear next step for every project.', btn('+ New project', () => { if (preview) { preview = false; samples = []; } navigate('new'); }, 'ws-button ws-primary', 'create-project-screen')));
+    mount.append(heading('Your projects, in view.', 'A place for every idea. A clear next step for every project.', btn('+ New project', () => navigate('new'), 'ws-button ws-primary', 'create-project-screen')));
     mount.append(focusBanner());
     const attention = projectAttention(all());
     if (attention.length) {
@@ -174,7 +176,7 @@ export function createWorkspaceShell({ projectStore, workspaceStore, onOffice, o
     for (const r of p.resources || []) { const row = el('div', 'ws-resource-row'); row.append(el('span', 'ws-file-icon', r.mime?.startsWith('image/') ? 'IMG' : r.mime === 'application/pdf' ? 'PDF' : 'TXT'), el('div', 'ws-grow')); row.lastChild.append(el('strong', '', r.name), small(`${Math.max(1, Math.ceil((r.size || 0) / 1024))} KB · ${r.readable || typeof r.text === 'string' ? 'Ready for agents' : 'Saved reference · agent access pending'}`)); row.append(btn('Download ↓', () => download(r), 'ws-text-button')); files.append(row); }
     if (p.sourceText) { const details = el('details', 'ws-resource-text'); details.append(el('summary', '', 'Pasted reference document'), documentView(p.sourceText)); files.append(details); } mount.append(files);
     const links = panel('Design references');
-    for (const [key, label] of [['figmaUrl', 'Figma file'], ['designSystemUrl', 'Design system']]) { const row = el('div', 'ws-resource-row'); row.append(el('div', 'ws-grow')); row.lastChild.append(el('strong', '', label), small(p[key] ? 'Reference saved · file access must be connected separately' : 'No reference added')); if (p[key]) { const a = el('a', 'ws-text-button', 'Open reference ↗'); a.href = p[key]; a.target = '_blank'; a.rel = 'noopener noreferrer'; row.append(a); } links.append(row); } mount.append(links);
+    for (const [key, label] of [['figmaUrl', 'Figma file'], ['designSystemUrl', 'Design system']]) { const row = el('div', 'ws-resource-row'); row.append(el('div', 'ws-grow')); row.lastChild.append(el('strong', '', label), small(p[key] ? 'Reference saved · file access must be connected separately' : 'No reference added')); if (p[key] && httpsReference(p[key])) { const a = el('a', 'ws-text-button', 'Open reference ↗'); a.href = p[key]; a.target = '_blank'; a.rel = 'noopener noreferrer'; row.append(a); } links.append(row); } mount.append(links);
     if (!p.draft) mount.append(small('These are the kickoff references. Use the project review workflow to request changes to an approved brief.'));
   }
   function renderWork(p) {
@@ -232,13 +234,14 @@ export function createWorkspaceShell({ projectStore, workspaceStore, onOffice, o
     const save = btn('Save draft', () => submit(false), 'ws-button', 'save-project-draft'), start = btn('Create & brief Nora', () => submit(true), 'ws-button ws-primary', 'brief-nora'); if (draft.id) start.textContent = 'Save & brief Nora'; actions.append(save, start); form.append(actions); form.addEventListener('submit', e => { e.preventDefault(); submit(false); });
     async function submit(startWork) {
       if (pending || uploading || !form.reportValidity()) return;
+      if (['figmaUrl', 'designSystemUrl'].some(key => draft[key] && !httpsReference(draft[key]))) { error('Use an HTTPS reference link without credentials.'); return; }
       if (startWork && !draft.brief.trim()) { error('Tell Nora briefly what you want this project to achieve.'); form.querySelector('[data-testid="new-brief"]').focus(); return; }
       await act(async () => {
         const payload = { title: draft.title, brief: draft.brief, sourceText: draft.sourceText || '', figmaUrl: draft.figmaUrl || '', designSystemUrl: draft.designSystemUrl || '', specialists: draft.specialists.join(','), resources: resourceInput(draft.resources), draft: 'true' };
         let p;
         if (preview) { p = { ...previewProjects()[2], ...structuredClone(draft), id: draft.id || `preview-${crypto.randomUUID()}`, draft: true, paused: true }; const index = samples.findIndex(item => item.id === p.id); if (index < 0) samples.push(p); else samples[index] = p; }
         else { const result = await projectStore.command(draft.id ? 'updateDraft' : 'create', { ...payload, ...(draft.id ? { projectId: draft.id } : {}) }); p = projectStore.getState().projects.find(item => item.id === result.projectId); }
-        draft = null; try { sessionStorage.removeItem('office-project-draft'); } catch {} navigate('project', p.id); if (startWork) moveTeam(p);
+        draft = null; try { sessionStorage.removeItem(draftKey()); } catch {} navigate('project', p.id); if (startWork) moveTeam(p);
       });
     }
   }
@@ -265,7 +268,7 @@ export function createWorkspaceShell({ projectStore, workspaceStore, onOffice, o
   document.getElementById('settings-button').addEventListener('click', () => navigate('settings'));
   document.querySelector('.wordmark').addEventListener('click', e => { e.preventDefault(); navigate('projects'); });
   workspaceStore.subscribe(s => { if (route.page === 'projects') render(); for (const n of mount.querySelectorAll('[data-worker-status]')) { n.textContent = s.runtime?.online ? 'Connected' : 'Offline'; } });
-  projectStore.subscribe(s => { const wasAuthenticated = snapshot.authenticated; snapshot = s; if (!s.authenticated) { mount.replaceChildren(); modal.close(); directory.close(); teamOpened = false; draft = null; preview = false; samples = []; signature = ''; if (wasAuthenticated) { try { sessionStorage.removeItem('office-project-draft'); } catch {} } } else render(); });
+  projectStore.subscribe(s => { const wasAuthenticated = snapshot.authenticated; snapshot = s; if (!s.authenticated) { mount.replaceChildren(); modal.close(); directory.close(); teamOpened = false; draft = null; preview = false; samples = []; signature = ''; if (wasAuthenticated) { try { sessionStorage.removeItem('office-project-draft'); sessionStorage.removeItem('office-preview-draft'); } catch {} } } else render(); });
   return {
     navigate, isOffice: () => route.page === 'office',
     enter() { const params = new URLSearchParams(location.hash.slice(1)); if (params.get('preview') === '1') { preview = true; samples = previewProjects(); } const page = ['projects', 'project', 'resources', 'work', 'project-settings', 'settings', 'office', 'new'].includes(params.get('page')) ? params.get('page') : 'projects'; navigate(page, params.get('id') || undefined, params.get('section') || undefined); },
