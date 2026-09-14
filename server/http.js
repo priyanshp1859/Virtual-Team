@@ -23,18 +23,18 @@ export function sameOrigin(req, env = process.env) {
   }
 }
 
-export async function readJson(req) {
+export async function readJson(req, limit = BODY_LIMIT) {
   const contentType = req.headers['content-type'];
   if (typeof contentType !== 'string' || !/^application\/json(?:\s*;|$)/i.test(contentType)) throw new ApiError(415, 'json_required', 'Send this request as JSON.');
   const declaredLength = req.headers['content-length'];
-  if (declaredLength !== undefined && (!/^\d+$/.test(String(declaredLength)) || Number(declaredLength) > BODY_LIMIT)) throw new ApiError(413, 'body_too_large', 'This request is too large.');
+  if (declaredLength !== undefined && (!/^\d+$/.test(String(declaredLength)) || Number(declaredLength) > limit)) throw new ApiError(413, 'body_too_large', 'This request is too large.');
   let body = req.body;
   if (body === undefined) {
     const chunks = [];
     let bytes = 0;
     for await (const chunk of req) {
       bytes += Buffer.byteLength(chunk);
-      if (bytes > BODY_LIMIT) throw new ApiError(413, 'body_too_large', 'This request is too large.');
+      if (bytes > limit) throw new ApiError(413, 'body_too_large', 'This request is too large.');
       chunks.push(Buffer.from(chunk));
     }
     body = Buffer.concat(chunks).toString('utf8');
@@ -42,7 +42,7 @@ export async function readJson(req) {
   try {
     if (Buffer.isBuffer(body)) body = body.toString('utf8');
     const serialized = typeof body === 'string' ? body : JSON.stringify(body);
-    if (typeof serialized !== 'string' || Buffer.byteLength(serialized) > BODY_LIMIT) throw new ApiError(413, 'body_too_large', 'This request is too large.');
+    if (typeof serialized !== 'string' || Buffer.byteLength(serialized) > limit) throw new ApiError(413, 'body_too_large', 'This request is too large.');
     const parsed = JSON.parse(serialized);
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Expected an object.');
     return parsed;

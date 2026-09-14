@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ROOMS, AGENTS, AVATAR_AGENTS, DEPARTMENTS } from './config.js';
-import { createTeamDirectory } from './team-directory.js';
+import { createWorkspaceShell } from './workspace-shell.js';
 import { createEnvironment } from './environment.js';
 import { createPeople } from './people.js';
 import './style.css';
@@ -28,6 +28,7 @@ const icons = {
   home: '<path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/>',
   move: '<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3m12-6 3 3-3 3"/>',
   close: '<path d="m6 6 12 12M6 18 18 6"/>',
+  settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>',
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.office}</svg>`;
 document.querySelectorAll('[data-icon]').forEach((el) => el.innerHTML = icon(el.dataset.icon));
@@ -45,6 +46,8 @@ setInterval(updateClock, 60_000);
 
 const container = $('office-canvas');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+try { document.documentElement.dataset.motion = localStorage.getItem('office-motion') || 'system'; } catch { /* Default system preference. */ }
+const reduceMotion = () => reducedMotion.matches || document.documentElement.dataset.motion === 'reduce';
 let renderer, controls, people, scene, camera;
 let selectedAgent = null, selectedRoom = null, transition = null, autoFocusMeeting = false;
 let currentState = { meeting: false, moving: false, agents: [] };
@@ -58,7 +61,8 @@ const roomMap = new Map(ROOMS.map(r => [r.id, r]));
 const workspace = createCloudStore();
 createAuthView({ store: workspace });
 const projects = createProjectStore({ onUnauthorized: () => workspace.refresh().catch(() => {}) });
-const projectWorkspace = createProjectWorkspace({ store: projects, mount: $('project-entry') });
+let shell;
+const projectWorkspace = createProjectWorkspace({ store: projects, mount: $('project-entry'), onCreate: () => shell.navigate('new') });
 const agentPanel = createAgentPanel({
   mount: $('agent-workspace'),
   store: workspace,
@@ -66,7 +70,11 @@ const agentPanel = createAgentPanel({
   onOpenProject: options => projectWorkspace.open(options),
   onSelectAgent: (id, options) => selectAgent(id, false, options),
 });
-const teamDirectory = createTeamDirectory({ store: workspace, projectStore: projects, onSelect: id => selectAgent(id, false, { tab: 'profile' }) });
+shell = createWorkspaceShell({ projectStore: projects, workspaceStore: workspace,
+  onOffice: () => { if (!initializedScene) { initializedScene = true; init(); } else resize(); overview(); },
+  onLeaveOffice: clearSelection, onOpenWork: options => projectWorkspace.open(options),
+  onSelectAgent: (id, options) => selectAgent(id, false, options), onSignOut: () => workspace.signOut().catch(() => {}),
+});
 let openedProjectLink = false;
 projects.subscribe(state => {
   agentPanel.setProjects(state); updateTeamTasks();
@@ -78,7 +86,6 @@ projects.subscribe(state => {
   }
   if (!state.authenticated) openedProjectLink = false;
 });
-$('team-directory-button').addEventListener('click', () => teamDirectory.open());
 createWorkspaceOverview({
   mount: $('work-summary'),
   store: workspace,
@@ -108,28 +115,34 @@ function showCloudState(state) {
   $('office-app').hidden = !ready;
   if (ready && !openedWorkspace) {
     openedWorkspace = true;
-    if (!initializedScene) { initializedScene = true; init(); }
-    else resize();
-    selectAgent('sam', false, { focus: false });
+    shell.enter();
   } else if (!ready && openedWorkspace) {
-    openedWorkspace = false; teamDirectory.close(); clearSelection(); agentPanel.reset();
+    openedWorkspace = false; clearSelection(); agentPanel.reset();
   }
   cloudToolbar.hidden = !ready;
-  cloudStatus.textContent = { loading: 'Loading…', ready: 'Saved to cloud', saving: 'Saving…', error: 'Sync needs attention' }[state.connectionStatus];
-  cloudStatus.dataset.state = state.connectionStatus;
-  signOutButton.disabled = state.connectionStatus === 'saving';
+  const projectState = projects.getState();
+  const saveStatus = projectState.pending ? 'saving' : projectState.error ? 'error' : state.connectionStatus;
+  cloudStatus.textContent = { loading: 'Loading…', ready: 'Saved to cloud', saving: 'Saving…', error: 'Sync needs attention' }[saveStatus];
+  cloudStatus.dataset.state = saveStatus;
+  signOutButton.disabled = saveStatus === 'saving';
   refreshButton.disabled = refreshPending || state.connectionStatus === 'saving';
   cloudError.textContent = state.persistenceError || '';
   cloudError.hidden = !ready || !state.persistenceError;
 }
 workspace.subscribe(showCloudState); showCloudState(workspace.getState());
-async function refreshWorkspace() {
+projects.subscribe(state => { if (state.authenticated && openedWorkspace) showCloudState(workspace.getState()); });
+async function refreshWorkspace(forceProjects = false) {
   if (refreshPending || !workspace.getState().authenticated || workspace.getState().connectionStatus === 'saving') return;
   refreshPending = true; refreshButton.disabled = true;
-  try { await Promise.all([workspace.refresh(), projects.refresh()]); } catch { /* Store exposes the failed sync without replacing saved data. */ }
+  try {
+    await workspace.refresh();
+    const latest = workspace.getState(), projectState = projects.getState();
+    // Saved attachments do not need to be downloaded on every idle heartbeat.
+    if (forceProjects === true || projectState.error || latest.revision > projectState.revision || Boolean(latest.runtime?.online) !== Boolean(projectState.runtime?.online)) await projects.refresh();
+  } catch { /* Store exposes the failed sync without replacing saved data. */ }
   finally { refreshPending = false; showCloudState(workspace.getState()); }
 }
-refreshButton.addEventListener('click', refreshWorkspace);
+refreshButton.addEventListener('click', () => refreshWorkspace(true));
 signOutButton.addEventListener('click', async () => {
   if (signOutButton.disabled) return;
   signOutButton.disabled = true;
@@ -147,7 +160,7 @@ function navigate(target, zoom = 1, position = null) {
   if (!camera || !controls) return;
   const nextTarget = new THREE.Vector3(...target);
   const offset = position ? new THREE.Vector3(...position) : homePosition.clone().sub(homeTarget).add(nextTarget);
-  transition = { start: performance.now(), duration: reducedMotion.matches ? 1 : 850, fromTarget: controls.target.clone(), target: nextTarget, fromPosition: camera.position.clone(), position: offset, fromZoom: camera.zoom, zoom };
+  transition = { start: performance.now(), duration: reduceMotion() ? 1 : 850, fromTarget: controls.target.clone(), target: nextTarget, fromPosition: camera.position.clone(), position: offset, fromZoom: camera.zoom, zoom };
 }
 
 function updateNavigation(roomId) {
@@ -174,6 +187,7 @@ function focusRoom(id) {
 }
 
 function overview() {
+  if (shell && !shell.isOffice()) { shell.navigate('office'); return; }
   updateNavigation(null);
   clearSelection();
   navigate([0, 0, 0], 1, homePosition.toArray());
@@ -264,6 +278,7 @@ function onStateChange(state) {
 function resize() {
   if (!renderer) return;
   const width = container.clientWidth, height = container.clientHeight;
+  if (!width || !height) return;
   const aspect = width / height;
   const span = Math.max(31.5, 42 / aspect);
   camera.left = -span * aspect / 2; camera.right = span * aspect / 2;
@@ -349,7 +364,7 @@ function init() {
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min((now - lastFrame) / 1000, .05); lastFrame = now;
-  if (document.hidden || !openedWorkspace) return;
+  if (document.hidden || !openedWorkspace || !shell.isOffice()) return;
   elapsed += dt;
   if (transition) {
     const t = Math.min(1, (now - transition.start) / transition.duration);

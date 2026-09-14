@@ -6,10 +6,40 @@ import { validateProjectOperation } from '../server/projects.js';
 import { createProjectsHandler } from '../api/projects.js';
 import { createSessionCookie, configuration } from '../server/auth.js';
 import { workflowSteps, CORE_TEAM } from '../src/office/workflow-config.js';
+import { projectResources } from '../server/project-resources.js';
+import { projectSummary, activeProject, projectAttention, previewProjects } from '../src/office/project-presentation.js';
 const fresh = () => createProject({ title: 'Office improvements', brief: 'Desktop and tablet; retain privacy and owner approval.' }, { workflowVersion: 1 });
 function finish(p, outcome = 'submitted') { const c = claimStep(p, 'worker'); assert(c); completeStep(p, c, { title: 'A completed artifact', body: 'Actual artifact and evidence for this unit fixture.', outcome }); return c; }
 function scopeReady() { const p = fresh(); finish(p); finish(p, 'approved'); return p; }
 const approve = (p, stepId) => ownerCommand(p, 'decide', { stepId, token: p.steps[stepId].token, decision: 'approved' });
+test('drafts retain incomplete briefs and validated files without running agents', () => {
+  const resources = JSON.stringify([{ name: 'brief.md', mime: 'text/markdown', text: 'Build a clear checkout.' }]);
+  const p = createProject({ title: 'Draft', draft: 'true', resources });
+  assert.equal(p.paused, true); assert.equal(p.draft, true); assert.equal(p.resources[0].readable, true); assert.equal(claimStep(p, 'worker'), null);
+  assert.throws(() => ownerCommand(p, 'resume', {}), /project brief/);
+  ownerCommand(p, 'updateDraft', { title: 'Checkout', brief: 'Make payment failures recoverable.', resources });
+  ownerCommand(p, 'resume', {}); assert.equal(p.draft, false); assert.equal(p.steps.prd.status, 'queued');
+  assert.throws(() => ownerCommand(p, 'updateDraft', { title: 'Silent replacement', brief: 'Different scope' }), /already started/);
+});
+test('file references validate size, type and content without granting agent capabilities', () => {
+  for (const value of ['{}', 'not json', JSON.stringify([{ name: 'x.svg', mime: 'image/svg+xml', data: 'abc' }]), JSON.stringify([{ name: 'x.pdf', mime: 'application/pdf', data: Buffer.from('<script>no</script>').toString('base64') }]), JSON.stringify([{ name: 'x.md', mime: 'text/markdown', text: 'a'.repeat(16001) }])]) assert.throws(() => projectResources(value), /Add up to/);
+  const [pdf] = projectResources(JSON.stringify([{ name: 'reference.pdf', mime: 'application/pdf', data: Buffer.from('%PDF-1.4\nReference test').toString('base64') }]));
+  assert.equal(pdf.readable, false); assert.equal(pdf.mime, 'application/pdf');
+  assert.throws(() => projectResources(JSON.stringify([{ ...pdf }])), /Add up to/); // clients cannot assign server-derived readability flags
+});
+test('pausing retains an unanswered question while rejecting old callbacks', () => {
+  const p = fresh(), claim = claimStep(p, 'worker'), step = p.steps.prd;
+  step.status = 'waiting_for_user'; step.question = { id: 'q1', text: 'Which customer?' };
+  ownerCommand(p, 'pause', {}); assert.equal(step.question.id, 'q1'); assert.equal(claimStep(p, 'worker'), null); assert.throws(() => requireClaim(p, claim), /replaced/);
+  ownerCommand(p, 'answer', { stepId: 'prd', questionId: 'q1', text: 'Returning customers.' }); assert.equal(claimStep(p, 'worker'), null);
+  ownerCommand(p, 'resume', {}); assert.equal(p.messages.at(-1).text, 'Returning customers.'); assert(claimStep(p, 'worker'));
+});
+test('project screens distinguish viewing, active work, paused work and explicit sample content', () => {
+  const samples = previewProjects(); const before = structuredClone(samples);
+  assert.equal(activeProject(samples).id, 'preview-abc'); assert.equal(projectSummary(samples[1]).label, 'Paused');
+  assert.equal(projectSummary(samples[2]).label, 'Draft'); assert.equal(projectAttention(samples).length, 1);
+  assert(samples.every(p => p.preview)); assert.deepEqual(samples, before, 'Presenting another project never changes the active team.');
+});
 test('new core projects assign six distinct roles and omit unrequested specialists', () => {
   const p = createProject({ title: 'Core project', brief: 'A scoped feature.' });
   const defs = workflowSteps(p); assert.equal(p.workflowVersion, 2);

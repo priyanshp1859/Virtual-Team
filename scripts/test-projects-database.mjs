@@ -41,5 +41,21 @@ try {
  await Promise.all([mutateProject(sql, discard), mutateProject(sql, discard)]);
  assert.equal((await projectSnapshot(sql)).projects.length, 0); assert((await loadProject(sql, p.id)).discardedAt);
  assert.equal(await claimProjectStep(sql, owner), null); assert.deepEqual((await readWorkspace(repository)).state, before);
+ const draftA = await mutateProject(sql, op('create', { title: 'Draft A', draft: 'true' }));
+ const draftB = await mutateProject(sql, op('create', { title: 'Draft B', draft: 'true', brief: 'Second project.' }));
+ assert.equal(await claimProjectStep(sql, owner), null, 'Saved drafts do not start work.');
+ await assert.rejects(mutateProject(sql, op('resume', { projectId: draftA.projectId })), /project brief/);
+ await mutateProject(sql, op('updateDraft', { projectId: draftA.projectId, title: 'Draft A', brief: 'First project.', resources: JSON.stringify([{ name: 'requirements.md', mime: 'text/markdown', text: 'Preserve owner approvals.' }]) }));
+ const startA = op('resume', { projectId: draftA.projectId }); await Promise.all([mutateProject(sql, startA), mutateProject(sql, startA)]);
+ const activeA = await claimProjectStep(sql, owner); assert.equal(activeA.claim.projectId, draftA.projectId);
+ await mutateProject(sql, op('resume', { projectId: draftB.projectId }));
+ await assert.rejects(updateProjectClaim(sql, activeA.claim, p => completeStep(p, activeA.claim, { title: 'Late', body: 'Stale work', outcome: 'submitted' })), /replaced/);
+ let switched = await projectSnapshot(sql); assert.equal(switched.projects.filter(p => !p.paused).length, 1); assert.equal(switched.projects.find(p => !p.paused).id, draftB.projectId);
+ assert.equal(switched.projects.find(p => p.id === draftA.projectId).resources[0].text, 'Preserve owner approvals.');
+ await Promise.all([mutateProject(sql, op('resume', { projectId: draftA.projectId })), mutateProject(sql, op('resume', { projectId: draftB.projectId }))]);
+ switched = await projectSnapshot(sql); assert.equal(switched.projects.filter(p => !p.paused).length, 1, 'Concurrent switches leave one assigned project.');
+ assert.equal((await loadProject(sql, draftA.projectId)).steps.prd.status, 'interrupted', 'Switching never silently reruns an interrupted step.');
+ assert.deepEqual((await readWorkspace(repository)).state, before);
  console.log('PASS: real database idempotency, exclusive claims, rollback, independent handoff, exact approval, queue progression and preservation of existing tasks.');
+ console.log('PASS: saved drafts, resource persistence, atomic team assignment, concurrent switches, old callback rejection and explicit interrupted-step recovery.');
 } finally { await pool.end(); await admin.unsafe(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); await admin.end(); }

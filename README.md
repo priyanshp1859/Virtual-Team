@@ -1,6 +1,6 @@
 # Virtual Team
 
-A private, desktop-and-tablet workspace for an AI team, presented as an interactive 3D office. Sam's chat opens first after sign-in. The application includes per-agent conversations, task history, a shared work queue, and an explicitly labeled sample code-review workflow.
+A private, desktop-and-tablet workspace for an AI team, presented as an interactive 3D office. A project overview opens after sign-in. The Office is the platform; each project has its own dashboard, resources and work. The application includes per-agent conversations, task history, a shared work queue, and an explicitly labeled sample code-review workflow.
 
 The frontend is Vite and Three.js. Vercel Functions provide the API, and PostgreSQL provisioned through Vercel Marketplace stores the workspace. All six core agents can chat through a local Codex worker with separate histories and role-specific instructions. Sam also handles coding assignments: he can discuss the repository, ask questions in chat, edit an isolated checkout, run checks and prepare actual code for review. The office now defines 20 agents across six departments, with per-role responsibilities and 25 curated skills. Project document and review roles now run through the local worker; Figma, project frontend and browser QA steps remain explicitly blocked until their capabilities are connected. Voice meetings remain previews.
 
@@ -8,11 +8,13 @@ The six core chats and connected assignments run while the owner's computer and 
 
 ## Departments and skills
 
-Open **Departments & skills** in the sidebar, or an agent's **Profile** tab, to browse the roster, role boundaries, assigned skills and source links. See [AGENT_TEAM.md](AGENT_TEAM.md) for the full mapping. Six roles form the core team: Nora, Maya, Sam, Ava, Theo and Noor; Sam executes standalone coding tasks, and seven roles execute project documents/reviews. The office avatars represent the six core roles. Fourteen specialist profiles remain available on demand.
+Open **Settings → Departments & skills**, or an agent's **Profile** tab, to browse the roster, role boundaries, assigned skills and source links. See [AGENT_TEAM.md](AGENT_TEAM.md) for the full mapping. Six roles form the core team: Nora, Maya, Sam, Ava, Theo and Noor; Sam executes standalone coding tasks, and seven roles execute project documents/reviews. The office avatars represent the six core roles. Fourteen specialist profiles remain available on demand.
 
 The source of truth is `agent-library/roster.json` and `catalog.json`. Skill packages discovered through skills.sh are pinned to upstream commits and checked against `skills.lock.json`. Package instructions and bundled helpers are retained with their licenses; installing these references does not connect tools or execute scripts. Only metadata enters the frontend bundle. Run `npm run agents:generate` after changing the roster or mapping, and `npm run test:agents` to verify profiles, persistence compatibility and package integrity.
 
-Sam receives his authored role brief and the paths to his three assigned packages on each run. The worker grants read-only access to those reference directories so existing isolated tasks can use them too. Open **Projects & approvals** to start a brief, follow Nora’s PRD and Theo’s independent review, then approve the exact PRD version. New projects send approved scope to Maya, then Ava for independent review. Select Milo for motion, Eden for substantial design-system work and Alex for delivery oversight when needed. Sam owns project implementation and Theo independently reviews it; later execution connections remain pending. See [PROJECT_WORKFLOW.md](PROJECT_WORKFLOW.md) for the implemented boundary and remaining connections.
+Sam receives his authored role brief and the paths to his three assigned packages on each run. The worker grants read-only access to those reference directories so existing isolated tasks can use them too. Open **Projects** to save a draft or explicitly brief Nora, follow Nora’s PRD and Theo’s independent review, then approve the exact PRD version. New projects send approved scope to Maya, then Ava for independent review. Select Milo for motion, Eden for substantial design-system work and Alex for delivery oversight when needed. Sam owns project implementation and Theo independently reviews it; later execution connections remain pending. See [PROJECT_WORKFLOW.md](PROJECT_WORKFLOW.md) for the implemented boundary and remaining connections.
+
+See [WORKSPACE_UX.md](WORKSPACE_UX.md) for the project screens, sample preview, draft/file limits and team switching. Project-scoped common chat is parked; existing workspace chats are preserved.
 
 ## Run locally
 

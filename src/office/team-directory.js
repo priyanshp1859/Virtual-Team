@@ -50,14 +50,14 @@ export function renderAgentProfile(agent, runtime) {
   return fragment;
 }
 
-export function createTeamDirectory({ store, projectStore, onSelect }) {
-  const dialog = el('dialog', 'team-directory'); dialog.dataset.testid = 'team-directory';
+export function createTeamDirectory({ store, projectStore, onSelect, mount }) {
+  const dialog = el(mount ? 'section' : 'dialog', 'team-directory'); dialog.dataset.testid = 'team-directory';
   dialog.setAttribute('aria-labelledby', 'team-directory-title');
   const header = el('header', 'td-header');
   const heading = el('div'); heading.append(el('p', 'td-eyebrow', 'THE PEOPLE BEHIND THE WORK'));
   const title = el('h2', '', 'Your team, thoughtfully assembled.'); title.id = 'team-directory-title';
   heading.append(title, el('p', 'td-subtitle', `${AGENTS.length} agents · ${DEPARTMENTS.length} departments · ${SKILLS.length} selected skills`));
-  const close = el('button', 'td-close', '×'); close.type = 'button'; close.setAttribute('aria-label', 'Close team directory'); close.addEventListener('click', () => dialog.close());
+  const close = el('button', 'td-close', '×'); close.type = 'button'; close.hidden = Boolean(mount); close.setAttribute('aria-label', 'Close team directory'); close.addEventListener('click', () => dialog.close?.());
   header.append(heading, close);
   const toolbar = el('div', 'td-toolbar');
   const searchLabel = el('label', 'td-search-label'); searchLabel.append(el('span', 'sr-only', 'Search agents, roles or skills'));
@@ -75,7 +75,7 @@ export function createTeamDirectory({ store, projectStore, onSelect }) {
   const body = el('div', 'td-body'); body.dataset.testid = 'team-results';
   const foot = el('footer', 'td-footer');
   foot.append(el('span', '', 'Open a profile to see responsibilities and skill sources.'), el('span', '', `${AVATAR_AGENTS.length} core team seats · specialists join when needed`));
-  dialog.append(header, toolbar, filters, body, foot); document.body.append(dialog);
+  dialog.append(header, toolbar, filters, body, foot); (mount || document.body).append(dialog);
 
   function render() {
     const query = search.value.trim().toLowerCase();
@@ -105,7 +105,7 @@ export function createTeamDirectory({ store, projectStore, onSelect }) {
         const skills = el('div', 'td-skill-names');
         for (const binding of agent.skills) skills.append(el('span', '', SKILLS.find(skill => skill.id === binding.id).name));
         card.append(identity, tags, el('p', 'td-description', agent.description), skills, el('span', 'td-open', 'View profile & skills ↗'));
-        card.addEventListener('click', () => { openingProfile = true; dialog.close(); onSelect(agent.id); }); grid.append(card);
+        card.addEventListener('click', () => { openingProfile = true; dialog.close?.(); onSelect(agent.id); }); grid.append(card);
       }
       section.append(grid); body.append(section);
     }
@@ -116,8 +116,8 @@ export function createTeamDirectory({ store, projectStore, onSelect }) {
   dialog.addEventListener('keydown', event => { if (event.key === 'Escape') event.stopPropagation(); });
   dialog.addEventListener('close', () => { if (!openingProfile && opener?.isConnected) opener.focus({ preventScroll: true }); });
   return {
-    open() { opener = document.activeElement; openingProfile = false; selected = 'all'; coreOnly = true; scope.textContent = 'Show on-demand specialists'; search.value = ''; render(); dialog.showModal(); search.focus(); },
-    close() { dialog.close(); },
+    open() { opener = document.activeElement; openingProfile = false; selected = 'all'; coreOnly = true; scope.textContent = 'Show on-demand specialists'; search.value = ''; render(); if (!mount) { dialog.showModal(); search.focus(); } },
+    close() { dialog.close?.(); },
     dispose() { dialog.remove(); },
   };
 }

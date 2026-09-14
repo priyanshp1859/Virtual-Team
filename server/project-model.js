@@ -1,5 +1,6 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { ApiError } from './errors.js';
+import { projectResources } from './project-resources.js';
 import { WORKFLOW_STEPS, WORKFLOW_CAPABILITIES, CAPABILITY_REASON, workflowSteps, PROJECT_SPECIALISTS } from '../src/office/workflow-config.js';
 export const PROJECT_LEASE_MS = 60_000;
 const fail = message => { throw new ApiError(409, 'project_conflict', message); };
@@ -34,16 +35,19 @@ export function advanceProject(project, capabilities = WORKFLOW_CAPABILITIES) {
   }
 }
 export function createProject(input, { id = randomUUID(), now = Date.now(), workflowVersion = 2 } = {}) {
-  const title = text(input.title, 'a project title', 140), brief = text(input.brief, 'the project brief', 12000);
+  if (input.draft !== undefined && !['true', 'false'].includes(input.draft)) throw new ApiError(400, 'invalid_input', 'Choose whether to save a draft.');
+  const draft = input.draft === 'true';
+  const title = text(input.title, 'a project title', 140), brief = text(input.brief || '', 'the project brief', 12000, !draft);
+  const resources = projectResources(input.resources);
   const sourceText = text(input.sourceText || '', 'project reference text', 16000, false);
   const specialists = text(input.specialists || '', 'specialist selections', 100, false).split(',').filter(Boolean).sort();
   if (new Set(specialists).size !== specialists.length || specialists.some(id => !PROJECT_SPECIALISTS.some(s => s.id === id))) throw new ApiError(400, 'invalid_input', 'Choose supported project specialists.');
   for (const key of ['figmaUrl', 'designSystemUrl']) {
     if (input[key]) { let u; try { u = new URL(input[key]); } catch {} if (!u || u.protocol !== 'https:' || u.username || u.password || input[key].length > 1800) throw new ApiError(400, 'invalid_input', 'Use an HTTPS reference link without credentials.'); }
   }
-  const project = { version: 1, workflowVersion, specialists, id, title, brief, sourceText, figmaUrl: input.figmaUrl || '', designSystemUrl: input.designSystemUrl || '', repository: 'priyanshp1859/Virtual-Team', paused: false, revision: 1, createdAt: now, updatedAt: now, steps: {}, artifacts: [], messages: [], events: [] };
+  const project = { version: 1, workflowVersion, specialists, id, title, brief, sourceText, resources, draft, figmaUrl: input.figmaUrl || '', designSystemUrl: input.designSystemUrl || '', repository: 'priyanshp1859/Virtual-Team', paused: draft, revision: 1, createdAt: now, updatedAt: now, steps: {}, artifacts: [], messages: [], events: [] };
   for (const d of workflowSteps(project)) project.steps[d.id] = { id: d.id, status: 'locked', generation: 1, attempt: 0, version: 0, artifactId: null, inputs: [], token: null, owner: null, leaseUntil: 0, question: null, error: null, activity: null, revisionRounds: 0 };
-  event(project, 'Project created. Nora will prepare the PRD; your approval is required before design work.', 'owner', now);
+  event(project, draft ? 'Project draft saved. No agent work has started.' : 'Project created. Nora will prepare the PRD; your approval is required before design work.', 'owner', now);
   advanceProject(project); return project;
 }
 export function invalidateFrom(project, stepId, comment, actor = 'owner') {
@@ -94,9 +98,18 @@ export function ownerCommand(project, action, input, now = Date.now()) {
     event(project, 'Project discarded by the owner. No further work will run.', 'owner', now);
   } else if (action === 'pause') {
     project.paused = true;
-    for (const s of Object.values(project.steps)) if (['working', 'waiting_for_user'].includes(s.status)) { s.status = 'interrupted'; s.generation++; s.owner = null; s.leaseUntil = 0; s.question = null; s.activity = null; s.error = 'Project paused. Existing work was preserved; retry this step when ready.'; }
+    for (const s of Object.values(project.steps)) {
+      if (s.status === 'waiting_for_user') { s.generation++; s.owner = null; s.leaseUntil = 0; s.activity = null; }
+      else if (s.status === 'working') { s.status = 'interrupted'; s.generation++; s.owner = null; s.leaseUntil = 0; s.activity = null; s.error = 'Project paused. Existing work was preserved; retry this step when ready.'; }
+    }
     event(project, 'Project paused. No new steps will start.', 'owner', now);
-  } else if (action === 'resume') { project.paused = false; event(project, 'Project resumed. Interrupted steps require an explicit retry.', 'owner', now); }
+  } else if (action === 'resume') { text(project.brief, 'the project brief', 12000); project.draft = false; project.paused = false; event(project, 'Team assigned to this project. Interrupted steps require an explicit retry.', 'owner', now); }
+  else if (action === 'updateDraft') {
+    if (!project.draft) fail('This brief has already started. Use the review workflow to request a revision.');
+    const replacement = createProject({ ...input, draft: 'true' }, { id: project.id, now: project.createdAt, workflowVersion: project.workflowVersion });
+    for (const key of ['title', 'brief', 'sourceText', 'resources', 'figmaUrl', 'designSystemUrl', 'specialists', 'steps']) project[key] = replacement[key];
+    event(project, 'Project draft updated. No agent work has started.', 'owner', now);
+  }
   else fail('Unknown project action.');
   advanceProject(project); return project;
 }

@@ -53,7 +53,7 @@ Project actions and worker results use the same workspace lock as the earlier ru
 
 The repository clone is under `.sam/jobs/`. Submitted documents are mirrored locally under `.sam/project-artifacts/<project-id>/<step>-v<version>.md`; these files and settings stay ignored by Git. The authenticated office contains the canonical saved artifacts and downloads. Agent edits do not appear in the main local checkout or deployed site until the appropriate review/publication process.
 
-The first release bounds storage to 12 projects, 800 KB per project and 4 MB total. Capacity errors preserve existing records. Source text and artifacts are rendered as text, not executable agent HTML. Credentials stay outside agent environments and repository clones.
+The first release bounds storage to 12 unarchived projects, 800 KB per project and 4 MB total including archived records. Capacity errors preserve existing records. Source text and artifacts are rendered as text, not executable agent HTML. Credentials stay outside agent environments and repository clones.
 
 ## Verification
 
@@ -61,3 +61,9 @@ The first release bounds storage to 12 projects, 800 KB per project and 4 MB tot
 - `node --env-file=.env.test.local scripts/test-projects-database.mjs` checks real SQL locking, idempotency, rollback, handoffs, approval and existing-task preservation in a disposable schema of the separate QA database.
 - `npm run test:runtime-db` also exercises the original Sam runtime against the new schema.
 - Browser QA exercises real Nora question/answer and PRD submission, Theo's independent review, the owner approval and next handoff, persistence, pause, signout and desktop/tablet viewports.
+
+## Project-first workspace screens
+
+See [WORKSPACE_UX.md](WORKSPACE_UX.md). Drafts have `draft: true`, remain paused and cannot be claimed. A draft can be edited through `updateDraft` until explicitly started. Starting or resuming a project pauses every other unfinished project in the same workspace transaction. Browsing never changes this assignment. Pausing retains unanswered questions and saved artifacts; active unfinished steps become interrupted and need an explicit retry. Late worker callbacks are rejected.
+
+Kickoff accepts up to five validated TXT/Markdown/PDF/PNG/JPEG references, 150 KB each and 250 KB total. Text content is limited to 16,000 characters and passed as reference data to the assigned project role. Binary files are stored/downloadable, but agents receive only their names and an explicit unreadable status. Reference links do not grant access. These additive JSON fields require no schema reset. Only the authenticated projects endpoint allows the larger bounded request body; other endpoints retain their existing limits.

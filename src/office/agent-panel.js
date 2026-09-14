@@ -386,7 +386,7 @@ export function createAgentPanel({ mount, store, onClose = () => {}, onSelectAge
     name.textContent = person.name; role.textContent = person.role; avatar.textContent = person.name[0]; avatar.style.setProperty('--agent-color', person.color); renderPresence();
     offline.textContent = connectedAgent() ? agentOnline() ? 'Connected' : 'Worker offline' : 'Not connected';
     offline.dataset.online = String(agentOnline());
-    connectionNote.textContent = connectedAgent() ? agentOnline() ? `Chat with ${person.name} · Codex on your computer` : 'Chats are saved and wait for this computer’s worker.' : 'Profile and skills ready. Chats are saved; execution is not connected.';
+    connectionNote.textContent = connectedAgent() ? agentOnline() ? `Workspace chat · ${person.name} · Codex on your computer` : 'Chats are saved and wait for this computer’s worker.' : 'Profile and skills ready. Chats are saved; execution is not connected.';
     const projectRole = WORKFLOW_STEPS.some(d => d.agentId === agentId && projectState.runtime?.capabilities?.[d.kind]);
     projectWork.hidden = !projectRole;
     projectWork.textContent = 'Open project assignments and conversation ↗';

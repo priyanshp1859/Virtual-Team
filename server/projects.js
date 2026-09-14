@@ -5,7 +5,8 @@ import { WORKFLOW_CAPABILITIES, WORKFLOW_STEPS, workflowSteps } from '../src/off
 import { createProject, ownerCommand, publicProject, claimStep, requireClaim, PROJECT_LEASE_MS } from './project-model.js';
 
 const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-const keys = { create: ['title', 'brief', 'sourceText', 'figmaUrl', 'designSystemUrl', 'specialists'], decide: ['projectId', 'stepId', 'token', 'decision', 'comment'], answer: ['projectId', 'stepId', 'questionId', 'text'], note: ['projectId', 'stepId', 'text'], retry: ['projectId', 'stepId'], pause: ['projectId'], resume: ['projectId'], discard: ['projectId'] };
+const briefKeys = ['title', 'brief', 'sourceText', 'figmaUrl', 'designSystemUrl', 'specialists', 'draft', 'resources'];
+const keys = { create: briefKeys, updateDraft: ['projectId', ...briefKeys], decide: ['projectId', 'stepId', 'token', 'decision', 'comment'], answer: ['projectId', 'stepId', 'questionId', 'text'], note: ['projectId', 'stepId', 'text'], retry: ['projectId', 'stepId'], pause: ['projectId'], resume: ['projectId'], discard: ['projectId'] };
 export function validateProjectOperation(body) {
   const invalid = () => { throw new ApiError(400, 'invalid_input', 'Enter valid project action details.'); };
   if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).some(k => !['operationId', 'action', 'input'].includes(k)) || !uuid(body.operationId) || !Object.hasOwn(keys, body.action)) invalid();
@@ -42,10 +43,19 @@ export async function mutateProject(sql, body) {
     }
     let project;
     if (operation.action === 'create') {
-      const [{ count }] = await tx`SELECT count(*)::integer AS count FROM virtual_team_projects`;
+      const [{ count }] = await tx`SELECT count(*)::integer AS count FROM virtual_team_projects WHERE data->>'discardedAt' IS NULL`;
       if (count >= 12) throw new ApiError(409, 'projects_full', 'This first version supports up to 12 projects. Existing projects are preserved.');
       project = createProject(operation.input);
     } else { project = await loadProject(tx, operation.input.projectId); ownerCommand(project, operation.action, operation.input); }
+    // Viewing a project does not mutate it. Only starting/resuming explicitly moves the team.
+    // The workspace row lock makes this switch atomic, including concurrent tabs.
+    if (!project.paused && ['create', 'resume'].includes(operation.action)) {
+      const others = await tx`SELECT data FROM virtual_team_projects WHERE id <> ${project.id}::uuid`;
+      for (const { data: other } of others) {
+        if (other.paused || other.discardedAt || other.steps.delivery_approval?.status === 'completed') continue;
+        ownerCommand(other, 'pause', {}); await saveProject(tx, other);
+      }
+    }
     await saveProject(tx, project);
     const result = { projectId: project.id };
     await tx`INSERT INTO virtual_team_project_operations (operation_id, fingerprint, result) VALUES (${operation.operationId}::uuid, ${operation.fingerprint}, ${tx.json(result)})`;

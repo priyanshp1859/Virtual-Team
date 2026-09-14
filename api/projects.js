@@ -8,7 +8,7 @@ export function createProjectsHandler({ env = process.env, database = getDatabas
     const config = requireSession(req, env);
     if (req.method === 'POST') sameOrigin(req, env);
     const db = await database(config);
-    const result = req.method === 'POST' ? await mutate(db.sql, await readJson(req)) : undefined;
+    const result = req.method === 'POST' ? await mutate(db.sql, await readJson(req, 450 * 1024)) : undefined;
     sendJson(res, 200, { ...await snapshot(db.sql, env.SAM_RUNTIME_ENABLED === 'true'), ...(result ? { result } : {}) });
   });
 }

@@ -9,7 +9,7 @@ function inputField(label, { area = false, value = '', placeholder = '', require
   const wrap = el('label', 'pw-field'); wrap.append(el('span', '', label));
   const input = el(area ? 'textarea' : 'input'); input.value = value; input.placeholder = placeholder; input.required = required; input.maxLength = maxLength; if (testid) input.dataset.testid = testid; wrap.append(input); return { wrap, input };
 }
-export function createProjectWorkspace({ store, onOpenAgent, mount }) {
+export function createProjectWorkspace({ store, onOpenAgent, onCreate, mount }) {
   let snapshot = store.getState(), selectedProject = null, selectedStep = 'prd', pane = 'work', opener, pending = false, shownSignature = '', formMode = false;
   const drafts = new Map(); let kickoffDraft = null;
   const dialog = el('dialog', 'project-workspace'); dialog.dataset.testid = 'project-workspace'; dialog.setAttribute('aria-labelledby', 'pw-title');
@@ -20,7 +20,7 @@ export function createProjectWorkspace({ store, onOpenAgent, mount }) {
   const controls = el('div', 'pw-controls');
   const projectSelect = el('select'); projectSelect.setAttribute('aria-label', 'Select project'); projectSelect.dataset.testid = 'project-select';
   projectSelect.addEventListener('change', () => { selectedProject = projectSelect.value; selectedStep = nextStep(project()); formMode = false; shownSignature = ''; render(); });
-  const add = button('New project', () => newProject(), 'pw-button pw-primary'); add.dataset.testid = 'new-project';
+  const add = button('New project', () => { if (onCreate) { dialog.close(); onCreate(); } else newProject(); }, 'pw-button pw-primary'); add.dataset.testid = 'new-project';
   const refresh = button('Refresh', () => act(() => store.refresh()));
   const pause = button('Pause project', () => { const p = project(); if (p) act(() => store.command(p.paused ? 'resume' : 'pause', { projectId: p.id })); });
   const follow = button('Current task', () => { selectedStep = nextStep(project()); pane = 'work'; shownSignature = ''; render(); }); follow.dataset.testid = 'current-project-step';
@@ -136,6 +136,7 @@ export function createProjectWorkspace({ store, onOpenAgent, mount }) {
     const key = `${p.id}:${d.id}:note`, field = inputField('Project note', { area: true, value: drafts.get(key) || '', testid: 'project-note' }); field.input.addEventListener('input', () => drafts.set(key, field.input.value)); content.append(field.wrap, button('Save note', () => act(async () => { await store.command('note', { projectId: p.id, stepId: d.id, text: field.input.value }); drafts.delete(key); shownSignature = ''; render(); })));
   }
   function newProject(office = false) {
+    if (onCreate) { dialog.close(); onCreate(); return; }
     formMode = true; title.textContent = 'Start a project'; if (office) kickoffDraft = { title: 'Office experience and team expansion', brief: OFFICE_PROJECT_BRIEF, specialists: 'milo' }; kickoffDraft ||= {}; steps.replaceChildren(); content.replaceChildren(); renderControls();
     const form = el('form', 'pw-kickoff'); form.dataset.testid = 'project-kickoff';
     form.append(el('h3', '', 'Give Nora the starting point.'), el('p', 'pw-help', 'Start from an idea or paste a project document. Nora creates a PRD for review before design starts. This release connects planning to the Virtual-Team repository.'));

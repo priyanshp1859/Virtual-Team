@@ -16,14 +16,20 @@
       <aside class="sidebar" aria-label="Office navigation">
         <a class="wordmark" href="/" aria-label="The Office home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>the office<span class="brand-period">.</span></a>
         <div class="workspace-label">YOUR LITTLE CORNER OF THE WORLD</div>
-        <button class="overview active" id="overview-button"><span data-icon="office"></span><span>Office overview</span><span class="keycap">O</span></button>
+        <nav class="ws-global-nav" aria-label="Workspace navigation">
+          <button class="overview active" id="projects-home-button" data-testid="projects-home"><span data-icon="grid"></span><span>Projects</span></button>
+          <button class="overview" id="overview-button"><span data-icon="office"></span><span>Office</span><span class="keycap">O</span></button>
+          <button class="overview" id="settings-button" data-testid="open-settings"><span data-icon="settings"></span><span>Settings</span></button>
+        </nav>
+        <nav id="selected-project-nav" aria-label="Project navigation" hidden></nav>
         <div id="project-entry"></div>
+        <div id="office-navigation" hidden>
         <div class="section-heading">THE SPACES <span>06</span></div>
         <nav class="rooms" id="rooms-list" aria-label="Rooms"></nav>
-        <div class="team-heading section-heading">YOUR TEAM <span id="team-count">20</span></div>
-        <button type="button" id="team-directory-button" class="team-directory-button" data-testid="open-team-directory"><span>Departments & skills</span><span aria-hidden="true">↗</span></button>
+        </div>
+        <div class="team-heading section-heading">WORKSPACE CHATS <span id="team-count">20</span></div>
         <div class="team-list" id="team-list"></div>
-        <div class="sidebar-bottom"><span class="mini-sun" data-icon="sun"></span><div>A place to do good work.<small>Office prototype · local animation</small></div></div>
+        <div class="sidebar-bottom"><span class="mini-sun" data-icon="sun"></span><div>A place to do good work.<small>One workspace. Room for ideas.</small></div></div>
       </aside>
       <main class="main">
         <header class="topbar">
